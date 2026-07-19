@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useCartStore } from "@/lib/cart-store";
 import { getProductById } from "@/data/products";
-import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD } from "@/lib/constants";
+import { DELIVERY_CHARGE, FREE_DELIVERY_THRESHOLD } from "@/lib/constants";
 import type { CartTotals, DetailedCartLine } from "@/types";
 
 /**
@@ -34,7 +34,7 @@ export function useDetailedCart(): {
     const subtotal = lines.reduce((sum, l) => sum + l.lineTotal, 0);
     const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
     const delivery =
-      subtotal === 0 || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+      subtotal === 0 || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE;
     const total = subtotal + delivery;
 
     return {

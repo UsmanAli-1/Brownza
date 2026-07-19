@@ -1,11 +1,14 @@
 import type { CategorySlug, Product } from "@/types";
 
 /**
- * Static product catalogue — the real Brownza menu (Phase 2).
+ * Static product catalogue — the real Brownza menu (from the menu posters).
  *
  * There is currently a single product photo. Every product intentionally
  * reuses it via `PLACEHOLDER_IMAGE`; drop per-product images (or Cloudinary
  * URLs) in here later without touching any component.
+ *
+ * Badges are assigned intentionally from a fixed vocabulary:
+ * Signature · Best Seller · Popular · Fresh · Customer Favorite · Limited.
  */
 const PLACEHOLDER_IMAGE = "/images/products/product-1.png";
 
@@ -32,6 +35,7 @@ export const products: readonly Product[] = [
     category: "cookies",
     image: PLACEHOLDER_IMAGE,
     featured: false,
+    badge: "Popular",
     serves: "1 jumbo cookie",
   },
 
@@ -45,7 +49,7 @@ export const products: readonly Product[] = [
     category: "brownies",
     image: PLACEHOLDER_IMAGE,
     featured: true,
-    badge: "Bestseller",
+    badge: "Best Seller",
     serves: "Box of 6",
   },
   {
@@ -57,6 +61,7 @@ export const products: readonly Product[] = [
     category: "brownies",
     image: PLACEHOLDER_IMAGE,
     featured: true,
+    badge: "Popular",
     serves: "Box of 6",
   },
   {
@@ -68,7 +73,7 @@ export const products: readonly Product[] = [
     category: "brownies",
     image: PLACEHOLDER_IMAGE,
     featured: true,
-    badge: "Popular",
+    badge: "Customer Favorite",
     serves: "Box of 6",
   },
   {
@@ -102,6 +107,7 @@ export const products: readonly Product[] = [
     category: "brownies",
     image: PLACEHOLDER_IMAGE,
     featured: false,
+    badge: "Popular",
     serves: "Box of 6",
   },
   {
@@ -113,7 +119,7 @@ export const products: readonly Product[] = [
     category: "brownies",
     image: PLACEHOLDER_IMAGE,
     featured: false,
-    badge: "Sharing",
+    badge: "Fresh",
     serves: "Box of 12",
   },
   {
@@ -125,6 +131,7 @@ export const products: readonly Product[] = [
     category: "brownies",
     image: PLACEHOLDER_IMAGE,
     featured: false,
+    badge: "Limited",
     serves: "Box of 6",
   },
   {
@@ -149,6 +156,7 @@ export const products: readonly Product[] = [
     category: "dumplings",
     image: PLACEHOLDER_IMAGE,
     featured: false,
+    badge: "Fresh",
     serves: "6 pieces",
   },
   {
@@ -160,7 +168,6 @@ export const products: readonly Product[] = [
     category: "dumplings",
     image: PLACEHOLDER_IMAGE,
     featured: false,
-    badge: "Sharing",
     serves: "12 pieces",
   },
 
@@ -185,6 +192,7 @@ export const products: readonly Product[] = [
     category: "lasagna",
     image: PLACEHOLDER_IMAGE,
     featured: false,
+    badge: "Popular",
     serves: "Serves 2–3",
   },
   {

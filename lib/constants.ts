@@ -1,17 +1,33 @@
 /**
  * App-wide constants: commerce rules, navigation, delivery areas and business
- * contact info. Values that vary by environment (delivery fee) are read from
- * environment variables so nothing is hardcoded across the app.
+ * contact info. Environment-driven values (phone, WhatsApp, delivery charge)
+ * are read here once so nothing is hardcoded across the app.
  */
 
-// ---- Commerce (env-driven) ----
+// ---- Env helpers ----
 function envNumber(value: string | undefined, fallback: number): number {
   const n = Number(value);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
-/** Flat delivery fee (PKR). Source of truth: NEXT_PUBLIC_DELIVERY_FEE. */
-export const DELIVERY_FEE = envNumber(process.env.NEXT_PUBLIC_DELIVERY_FEE, 250);
+/** Digits only, converted to international (03XXXXXXXXX -> 92XXXXXXXXX). */
+function toIntl(local: string): string {
+  const digits = local.replace(/\D/g, "");
+  return digits.startsWith("0") ? `92${digits.slice(1)}` : digits;
+}
+
+/** Pretty-print an 11-digit local number: 03719132611 -> 0371 9132611. */
+function formatLocal(local: string): string {
+  const d = local.replace(/\D/g, "");
+  return d.length === 11 ? `${d.slice(0, 4)} ${d.slice(4)}` : local;
+}
+
+// ---- Commerce (env-driven) ----
+/** Flat delivery charge (PKR). Source of truth: NEXT_PUBLIC_DELIVERY_CHARGE. */
+export const DELIVERY_CHARGE = envNumber(
+  process.env.NEXT_PUBLIC_DELIVERY_CHARGE,
+  250,
+);
 /** Subtotal (PKR) at/above which delivery is free. */
 export const FREE_DELIVERY_THRESHOLD = envNumber(
   process.env.NEXT_PUBLIC_FREE_DELIVERY_THRESHOLD,
@@ -57,18 +73,28 @@ export const DELIVERY_AREAS = [
 export type DeliveryArea = (typeof DELIVERY_AREAS)[number];
 export const DEFAULT_DELIVERY_AREA: DeliveryArea = "Other";
 
-// ---- Business details (Cloud Bakery — Karachi, no physical address) ----
+// ---- Business details (env-driven; cloud bakery — Karachi, no address) ----
+const PHONE = process.env.NEXT_PUBLIC_PHONE_NUMBER ?? "03719132611";
+const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "03719132611";
+
 export const CONTACT = {
   city: "Karachi",
-  phoneDisplay: "+92 300 1234567",
-  phoneHref: "tel:+923001234567",
-  whatsappDisplay: "+92 300 1234567",
-  whatsappHref: "https://wa.me/923001234567",
+  phoneDisplay: formatLocal(PHONE),
+  phoneHref: `tel:${PHONE.replace(/\s/g, "")}`,
+  whatsappDisplay: formatLocal(WHATSAPP),
+  whatsappHref: `https://wa.me/${toIntl(WHATSAPP)}`,
   instagramHandle: "@brownza",
   instagramHref: "https://instagram.com/brownza",
   // Kept for forms/metadata; not shown as a physical contact method.
   emailDisplay: "hello@brownza.com",
   emailHref: "mailto:hello@brownza.com",
+} as const;
+
+// ---- Bank details for online payments (not secret) ----
+export const BANK_DETAILS = {
+  bank: "Meezan Bank",
+  accountNumber: "99510104996453",
+  accountHolder: "Masters Collection",
 } as const;
 
 export interface SocialLink {

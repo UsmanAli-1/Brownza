@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/footer";
 import { Toaster } from "@/components/ui/sonner";
 import { JsonLd } from "@/components/seo/json-ld";
 import { LocationGate } from "@/components/location/location-gate";
+import { FloatingActions } from "@/components/common/floating-actions";
 import { siteConfig } from "@/config/site";
 
 const inter = Inter({
@@ -106,6 +107,7 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        <FloatingActions />
         <Toaster />
         <LocationGate />
       </body>

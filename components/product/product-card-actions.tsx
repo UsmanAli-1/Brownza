@@ -27,15 +27,17 @@ export function ProductCardActions({ product }: { product: Product }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2.5">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2.5">
         <QuantitySelector
           value={qty}
           onChange={setQty}
+          size="sm"
           className="w-full justify-between sm:w-auto sm:justify-center"
           ariaLabel={`Quantity for ${product.name}`}
         />
         <Button
           onClick={handleAdd}
+          size="sm"
           className="w-full sm:flex-1"
           aria-label={`Add ${product.name} to cart`}
         >

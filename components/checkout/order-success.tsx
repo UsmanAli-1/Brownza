@@ -70,6 +70,13 @@ export function OrderSuccess({ order }: { order: PlacedOrder }) {
         </div>
       </div>
 
+      {order.paymentMethod === "online" && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
+          Your order will remain <strong>Pending</strong> until the bakery
+          verifies your payment screenshot.
+        </div>
+      )}
+
       {/* Order details */}
       <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
         <h2 className="font-heading text-lg font-semibold text-foreground">

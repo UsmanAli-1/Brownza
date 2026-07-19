@@ -4,20 +4,15 @@ import * as React from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import {
-  Banknote,
-  CreditCard,
-  ImageUp,
-  Loader2,
-  Lock,
-  MapPin,
-} from "lucide-react";
+import { Banknote, CreditCard, ImageUp, Loader2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { BankDetails } from "@/components/checkout/bank-details";
+import { ScreenshotUpload } from "@/components/checkout/screenshot-upload";
 import { cn } from "@/lib/utils";
 import { detectDeliveryArea } from "@/lib/geolocation";
 import { DEFAULT_DELIVERY_AREA, DELIVERY_AREAS } from "@/lib/constants";
@@ -76,7 +71,21 @@ export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
   });
 
   const [locating, setLocating] = React.useState(false);
+  const [screenshot, setScreenshot] = React.useState<File | null>(null);
+  const [screenshotError, setScreenshotError] = React.useState<string | null>(
+    null,
+  );
   const paymentMethod = useWatch({ control, name: "paymentMethod" });
+
+  // Online payment requires a screenshot before the order can be placed.
+  const submit = handleSubmit(async (values) => {
+    if (values.paymentMethod === "online" && !screenshot) {
+      setScreenshotError("Please upload your payment screenshot to continue.");
+      toast.error("Payment screenshot is required for online payment.");
+      return;
+    }
+    await onPlaceOrder(values);
+  });
 
   // Detect the delivery area via geolocation + reverse geocoding.
   const handleLocation = async () => {
@@ -98,11 +107,7 @@ export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onPlaceOrder)}
-      noValidate
-      className="flex flex-col gap-6"
-    >
+    <form onSubmit={submit} noValidate className="flex flex-col gap-6">
       <CardSection title="Delivery details">
         {/* Full name */}
         <div className="flex flex-col gap-1.5">
@@ -238,7 +243,10 @@ export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
           render={({ field }) => (
             <RadioGroup
               value={field.value}
-              onValueChange={field.onChange}
+              onValueChange={(v) => {
+                field.onChange(v);
+                if (v !== "online") setScreenshotError(null);
+              }}
               className="grid gap-3 sm:grid-cols-2"
             >
               {(
@@ -291,25 +299,27 @@ export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
           )}
         />
 
-        {/* Reserved upload area for online payments (not yet functional) */}
+        {/* Online payment: bank details + required screenshot upload */}
         {paymentMethod === "online" && (
-          <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-5">
-            <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <ImageUp className="size-4 text-secondary" />
-              Payment screenshot
-            </p>
-            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-              After transferring, you&apos;ll upload your payment proof here.
-              <span className="inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 font-medium">
-                <Lock className="size-3" />
-                Coming soon
-              </span>
-            </p>
-            <div
-              aria-disabled="true"
-              className="mt-3 flex h-28 items-center justify-center rounded-xl border border-dashed border-border bg-card/60 text-xs text-muted-foreground"
-            >
-              Upload area reserved for a future phase
+          <div className="flex flex-col gap-4">
+            <BankDetails />
+            <div className="flex flex-col gap-2">
+              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <ImageUp className="size-4 text-secondary" />
+                Upload payment screenshot <span className="text-danger">*</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Transfer the total to the account above, then upload your payment
+                proof. Your order stays Pending until we verify it.
+              </p>
+              <ScreenshotUpload
+                value={screenshot}
+                onChange={(file) => {
+                  setScreenshot(file);
+                  if (file) setScreenshotError(null);
+                }}
+                error={screenshotError ?? undefined}
+              />
             </div>
           </div>
         )}
