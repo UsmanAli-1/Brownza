@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+/*
+ * Brownza — Global Theme
+ * -------------------------------------------------------------------------
+ * Single source of truth for the "Luxury Chocolate Bakery" design system.
+ * All color, typography, radius, shadow and motion tokens live here as
+ * Tailwind v4 `@theme` variables. Components consume them via utilities
+ * (bg-primary, text-accent, font-heading, shadow-card, ...). Never hardcode
+ * a hex value in a component — add or reuse a token instead.
+ */
+
+@theme {
+  /* ---- Brand palette (from brand guidelines) ---- */
+  --color-primary: #4a2c20; /* deep chocolate */
+  --color-secondary: #6b4226; /* roasted cocoa */
+  --color-accent: #d4a373; /* warm caramel gold */
+  --color-background: #f8f5f2; /* soft cream */
+  --color-dark: #2b1b14; /* espresso near-black */
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+
+  /* ---- Semantic surfaces & text (derived) ---- */
+  --color-foreground: #2b1b14; /* primary text on cream */
+  --color-primary-foreground: #f8f5f2; /* text on chocolate */
+  --color-accent-foreground: #3a2318; /* text on caramel */
+  --color-card: #ffffff;
+  --color-muted: #f1e9e1; /* subtle warm surface */
+  --color-muted-foreground: #8a7969; /* secondary text / taupe */
+  --color-border: #e8dfd5; /* soft warm hairline */
+  --color-ring: #d4a373;
+  --color-accent-soft: #efdcc3; /* pale caramel wash */
+
+  /* ---- Typography ---- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-playfair), ui-serif, Georgia, serif;
+
+  /* ---- Elevation (warm-tinted shadows) ---- */
+  --shadow-soft: 0 1px 2px rgba(43, 27, 20, 0.04),
+    0 6px 20px -8px rgba(74, 44, 32, 0.14);
+  --shadow-card: 0 1px 2px rgba(43, 27, 20, 0.04),
+    0 18px 44px -20px rgba(74, 44, 32, 0.22);
+  --shadow-lift: 0 2px 4px rgba(43, 27, 20, 0.06),
+    0 26px 60px -22px rgba(74, 44, 32, 0.30);
+
+  /* ---- Motion ---- */
+  --ease-lux: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* -------------------------------------------------------------------------
+ * Base layer
+ * ---------------------------------------------------------------------- */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+  }
+
+  /* Accessible focus ring — visible only for keyboard users */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-dark);
+  }
+}
+
+/* -------------------------------------------------------------------------
+ * Utilities & components
+ * ---------------------------------------------------------------------- */
+@layer utilities {
+  /* Editorial gold underline accent for section eyebrows */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Warm gradient used on premium surfaces / hero overlays */
+  .bg-cocoa-gradient {
+    background-image: linear-gradient(
+      135deg,
+      var(--color-dark) 0%,
+      var(--color-primary) 55%,
+      var(--color-secondary) 100%
+    );
+  }
+
+  .bg-caramel-gradient {
+    background-image: linear-gradient(
+      135deg,
+      var(--color-accent) 0%,
+      #e6c79c 100%
+    );
+  }
+
+  /* Hide scrollbars while keeping scroll (mobile category rail, etc.) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Custom, brand-tinted scrollbar (progressive enhancement) */
+@supports (scrollbar-color: auto) {
+  html {
+    scrollbar-color: var(--color-accent) transparent;
+  }
+}
+
+/* Respect reduced-motion preferences globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
