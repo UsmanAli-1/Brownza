@@ -6,8 +6,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // Keep transactional pages out of the index.
-      disallow: ["/cart", "/checkout"],
+      // Keep transactional, admin and API routes out of the index.
+      disallow: ["/cart", "/checkout", "/admin", "/api"],
     },
     sitemap: `${siteConfig.url}/sitemap.xml`,
     host: siteConfig.url,

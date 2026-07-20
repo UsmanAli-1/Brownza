@@ -25,6 +25,8 @@ export interface Product {
   /** Public path or remote URL. Replaced per-product in a later phase. */
   image: string;
   featured: boolean;
+  /** Whether the item can currently be ordered. */
+  available: boolean;
   /** Optional merchandising label, e.g. "Bestseller". */
   badge?: string;
   /** Portion/serving hint, e.g. "Serves 6–8" or "6 pcs". */
@@ -53,13 +55,17 @@ export interface CartTotals {
 
 export type PaymentMethod = "cod" | "online";
 
-export type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "preparing"
-  | "out-for-delivery"
-  | "delivered"
-  | "cancelled";
+export const ORDER_STATUSES = [
+  "pending",
+  "accepted",
+  "preparing",
+  "ready",
+  "out-for-delivery",
+  "delivered",
+  "cancelled",
+] as const;
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 /** Snapshot of a placed order, shown on the success page. */
 export interface PlacedOrder {

@@ -11,11 +11,12 @@ import { useCartStore } from "@/lib/cart-store";
 import { useDetailedCart } from "@/lib/use-cart";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useLocationStore } from "@/lib/location-store";
-import { nextOrderId } from "@/lib/order-id";
+import { saveLastOrder } from "@/lib/last-order";
 import { DEFAULT_DELIVERY_AREA } from "@/lib/constants";
 import { formatPrice } from "@/lib/utils";
 import type { CheckoutFormValues } from "@/lib/validations/checkout";
 import type { PlacedOrder } from "@/types";
+import type { CreateOrderInput, OrderRecord } from "@/types/order";
 
 function CheckoutSkeleton() {
   return (
@@ -36,22 +37,102 @@ export function CheckoutView() {
   const savedArea = useLocationStore((s) => s.area);
   const [placed, setPlaced] = React.useState<PlacedOrder | null>(null);
 
-  const handlePlaceOrder = async (values: CheckoutFormValues) => {
-    // Simulate an async submission. A real backend/API is wired in later.
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    const order: PlacedOrder = {
-      id: nextOrderId(),
-      customerName: values.fullName,
-      phone: values.phone,
-      deliveryArea: values.deliveryArea,
-      paymentMethod: values.paymentMethod,
-      lines, // snapshot before clearing the cart
-      totals,
-      status: "pending",
-    };
-    clear();
-    setPlaced(order);
-    toast.success("Order placed!", { description: `Reference ${order.id}` });
+  const handlePlaceOrder = async (
+    values: CheckoutFormValues,
+    screenshot: File | null,
+  ) => {
+    try {
+      const payment: CreateOrderInput["payment"] = {
+        method: values.paymentMethod === "online" ? "ONLINE" : "COD",
+      };
+
+      // 1) Upload the payment screenshot to Cloudinary for online payments.
+      if (values.paymentMethod === "online" && screenshot) {
+        const fd = new FormData();
+        fd.append("file", screenshot);
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: fd,
+        });
+        if (!uploadRes.ok) {
+          throw new Error(
+            "We couldn't upload your screenshot. Please try again.",
+          );
+        }
+        const uploaded = (await uploadRes.json()) as {
+          url: string;
+          publicId: string;
+        };
+        payment.screenshotUrl = uploaded.url;
+        payment.screenshotPublicId = uploaded.publicId;
+      }
+
+      // 2) Create the order.
+      const input: CreateOrderInput = {
+        customer: {
+          name: values.fullName,
+          phone: values.phone,
+          whatsapp: values.phone,
+          email: values.email || undefined,
+        },
+        delivery: {
+          address: values.address,
+          city: values.deliveryArea,
+          notes: values.notes || undefined,
+        },
+        items: lines.map((l) => ({
+          productId: l.product.id,
+          productName: l.product.name,
+          quantity: l.quantity,
+          unitPrice: l.product.price,
+        })),
+        payment,
+        subtotal: totals.subtotal,
+        deliveryFee: totals.delivery,
+        total: totals.total,
+      };
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(
+          err?.error ?? "We couldn't place your order. Please try again.",
+        );
+      }
+      const { order } = (await res.json()) as { order: OrderRecord };
+
+      // Persist for the tracking page (survives refresh).
+      saveLastOrder({ id: order._id, orderNumber: order.orderNumber });
+
+      // 3) Build the success snapshot from the created order + local lines.
+      const placedOrder: PlacedOrder = {
+        id: order.orderNumber,
+        customerName: order.customer.name,
+        phone: order.customer.phone,
+        deliveryArea: order.delivery.city,
+        paymentMethod: values.paymentMethod,
+        lines,
+        totals,
+        status: order.status,
+      };
+      clear();
+      setPlaced(placedOrder);
+      toast.success("Order received!", {
+        description: `Reference ${order.orderNumber}`,
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
+      );
+    }
   };
 
   if (!hydrated) return <CheckoutSkeleton />;

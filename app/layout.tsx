@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { SiteChrome } from "@/components/layout/site-chrome";
 import { Toaster } from "@/components/ui/sonner";
 import { JsonLd } from "@/components/seo/json-ld";
 import { LocationGate } from "@/components/location/location-gate";
@@ -102,14 +103,15 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <Navbar />
-        <main id="main" className="flex-1">
+        <SiteChrome
+          navbar={<Navbar />}
+          footer={<Footer />}
+          floating={<FloatingActions />}
+          locationGate={<LocationGate />}
+        >
           {children}
-        </main>
-        <Footer />
-        <FloatingActions />
+        </SiteChrome>
         <Toaster />
-        <LocationGate />
       </body>
     </html>
   );

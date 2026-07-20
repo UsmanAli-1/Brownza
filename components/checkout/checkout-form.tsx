@@ -49,7 +49,10 @@ const CardSection = ({
 interface CheckoutFormProps {
   /** Pre-selected delivery area (from the location popup). */
   initialArea?: string;
-  onPlaceOrder: (values: CheckoutFormValues) => Promise<void>;
+  onPlaceOrder: (
+    values: CheckoutFormValues,
+    screenshot: File | null,
+  ) => Promise<void>;
 }
 
 export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
@@ -84,7 +87,7 @@ export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
       toast.error("Payment screenshot is required for online payment.");
       return;
     }
-    await onPlaceOrder(values);
+    await onPlaceOrder(values, screenshot);
   });
 
   // Detect the delivery area via geolocation + reverse geocoding.

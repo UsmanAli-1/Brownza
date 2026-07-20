@@ -3,23 +3,12 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn, formatPrice } from "@/lib/utils";
-import type { OrderStatus, PaymentMethod, PlacedOrder } from "@/types";
+import { ORDER_STATUS_META } from "@/lib/order-status";
+import type { PaymentMethod, PlacedOrder } from "@/types";
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   cod: "Cash on delivery",
   online: "Online payment",
-};
-
-const STATUS_STYLES: Record<OrderStatus, { label: string; className: string }> = {
-  pending: { label: "Pending", className: "bg-amber-100 text-amber-800" },
-  confirmed: { label: "Confirmed", className: "bg-sky-100 text-sky-800" },
-  preparing: { label: "Preparing", className: "bg-sky-100 text-sky-800" },
-  "out-for-delivery": {
-    label: "Out for delivery",
-    className: "bg-indigo-100 text-indigo-800",
-  },
-  delivered: { label: "Delivered", className: "bg-success/12 text-success" },
-  cancelled: { label: "Cancelled", className: "bg-danger/12 text-danger" },
 };
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -32,7 +21,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export function OrderSuccess({ order }: { order: PlacedOrder }) {
-  const status = STATUS_STYLES[order.status];
+  const status = ORDER_STATUS_META[order.status];
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
@@ -46,7 +35,10 @@ export function OrderSuccess({ order }: { order: PlacedOrder }) {
             Thank you, {order.customerName.split(" ")[0]}!
           </h1>
           <p className="text-muted-foreground">
-            Your order has been placed. We&apos;ll call you shortly to confirm.
+            Your order has been received.{" "}
+            {order.paymentMethod === "online"
+              ? "It will be confirmed once the bakery verifies your payment."
+              : "We'll contact you shortly to confirm."}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -151,10 +143,13 @@ export function OrderSuccess({ order }: { order: PlacedOrder }) {
 
       <div className="flex flex-wrap justify-center gap-3">
         <Button asChild size="lg">
-          <Link href="/products">
-            Order again
+          <Link href="/track">
+            Track your order
             <ArrowRight />
           </Link>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/products">Order again</Link>
         </Button>
       </div>
     </div>

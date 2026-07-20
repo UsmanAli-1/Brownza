@@ -90,12 +90,14 @@ export const CONTACT = {
   emailHref: "mailto:hello@brownza.com",
 } as const;
 
-// ---- Bank details for online payments (not secret) ----
+// ---- Bank details for online payments (client-exposed; shown at checkout) ----
 export const BANK_DETAILS = {
-  bank: "Meezan Bank",
-  accountNumber: "99510104996453",
-  accountHolder: "Masters Collection",
-} as const;
+  bank: process.env.NEXT_PUBLIC_BANK_NAME ?? "Meezan Bank",
+  accountNumber:
+    process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ?? "99510104996453",
+  accountHolder:
+    process.env.NEXT_PUBLIC_BANK_ACCOUNT_TITLE ?? "Masters Collection",
+};
 
 export interface SocialLink {
   label: string;
