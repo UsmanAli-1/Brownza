@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { Order, type OrderDoc } from "@/lib/models/order";
+import { Activity } from "@/lib/models/activity";
 import { cloudinary } from "@/lib/cloudinary";
 import { emitOrderEvent } from "@/lib/events";
 import { logActivity } from "@/lib/services/activity-service";
@@ -76,6 +77,8 @@ function broadcast(record: OrderRecord, type: OrderEvent["type"]): void {
     status: record.status,
     paymentVerified: record.payment.paymentVerified,
     cancellationReason: record.cancellationReason,
+    customerName: record.customer.name,
+    total: record.total,
   });
 }
 
@@ -205,9 +208,15 @@ export async function verifyOrderPayment(
 function buildFilter(opts: {
   status?: OrderStatus;
   search?: string;
+  todayOnly?: boolean;
 }): Record<string, unknown> {
   const filter: Record<string, unknown> = {};
   if (opts.status) filter.status = opts.status;
+  if (opts.todayOnly) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    filter.createdAt = { $gte: start };
+  }
   if (opts.search) {
     const rx = new RegExp(
       opts.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
@@ -228,6 +237,10 @@ export interface ListOrdersOptions {
   search?: string;
   page?: number;
   pageSize?: number;
+  /** Only orders created today. */
+  todayOnly?: boolean;
+  /** "operational" = active first then completed; "recent" = newest first. */
+  sort?: "operational" | "recent";
 }
 
 export async function listOrders(
@@ -236,19 +249,42 @@ export async function listOrders(
   await connectToDatabase();
   const page = Math.max(1, opts.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, opts.pageSize ?? 20));
-  const filter = buildFilter(opts);
+  const match = buildFilter(opts);
 
-  const [docs, total] = await Promise.all([
-    Order.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .lean<OrderLean[]>(),
-    Order.countDocuments(filter),
-  ]);
+  const result = (await Order.aggregate([
+    { $match: match },
+    // "recent": pure newest-first. Otherwise active orders on top, then
+    // delivered, then cancelled (operational view).
+    ...(opts.sort === "recent"
+      ? [{ $sort: { createdAt: -1 as const } }]
+      : [
+          {
+            $addFields: {
+              _sortGroup: {
+                $switch: {
+                  branches: [
+                    { case: { $eq: ["$status", "delivered"] }, then: 1 },
+                    { case: { $eq: ["$status", "cancelled"] }, then: 2 },
+                  ],
+                  default: 0,
+                },
+              },
+            },
+          },
+          { $sort: { _sortGroup: 1 as const, createdAt: -1 as const } },
+        ]),
+    {
+      $facet: {
+        data: [{ $skip: (page - 1) * pageSize }, { $limit: pageSize }],
+        count: [{ $count: "total" }],
+      },
+    },
+  ])) as { data: OrderLean[]; count: { total: number }[] }[];
 
+  const facet = result[0];
+  const total = facet?.count[0]?.total ?? 0;
   return {
-    orders: docs.map(serialize),
+    orders: (facet?.data ?? []).map(serialize),
     total,
     page,
     pageSize,
@@ -256,13 +292,49 @@ export async function listOrders(
   };
 }
 
-export async function getLatestOrders(limit = 8): Promise<OrderRecord[]> {
+interface TodayFacet {
+  byStatus: { _id: OrderStatus; count: number }[];
+  total: { count: number }[];
+  revenue: { _id: null; revenue: number }[];
+}
+
+export interface TodayStats {
+  todayOrders: number;
+  todayRevenue: number;
+  byStatus: Record<OrderStatus, number>;
+}
+
+/** Operational stats scoped to orders placed today (for the Orders page). */
+export async function getTodayStats(): Promise<TodayStats> {
   await connectToDatabase();
-  const docs = await Order.find()
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .lean<OrderLean[]>();
-  return docs.map(serialize);
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const result = (await Order.aggregate([
+    { $match: { createdAt: { $gte: start } } },
+    {
+      $facet: {
+        byStatus: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
+        total: [{ $count: "count" }],
+        revenue: [
+          { $match: { status: "delivered" } },
+          { $group: { _id: null, revenue: { $sum: "$total" } } },
+        ],
+      },
+    },
+  ])) as TodayFacet[];
+
+  const facet = result[0];
+  const byStatus = Object.fromEntries(
+    ORDER_STATUSES.map((s) => [s, 0]),
+  ) as Record<OrderStatus, number>;
+  for (const row of facet.byStatus) byStatus[row._id] = row.count;
+
+  return {
+    todayOrders: facet.total[0]?.count ?? 0,
+    todayRevenue: facet.revenue[0]?.revenue ?? 0,
+    byStatus,
+  };
 }
 
 export async function getOrderById(id: string): Promise<OrderRecord | null> {
@@ -436,31 +508,18 @@ export async function getAnalytics(): Promise<AnalyticsData> {
   };
 }
 
-// ---- Cloudinary screenshot cleanup ----
+// ---- Deletion (Cloudinary + Mongo) ----
 
-export interface DeleteScreenshotsResult {
-  deleted: number;
-  failed: number;
-  ordersUpdated: number;
-}
-
-export async function deleteAllScreenshots(): Promise<DeleteScreenshotsResult> {
-  await connectToDatabase();
-  const docs = await Order.find(
-    { "payment.screenshotPublicId": { $exists: true, $ne: null } },
-    { "payment.screenshotPublicId": 1 },
-  ).lean<{ payment: { screenshotPublicId?: string } }[]>();
-
-  const publicIds = docs
-    .map((d) => d.payment.screenshotPublicId)
-    .filter((x): x is string => !!x);
-
+/** Delete Cloudinary assets in batches of 100 (delete_resources limit). */
+async function deleteCloudinaryByPublicIds(
+  publicIds: string[],
+): Promise<{ deleted: number; failed: number }> {
+  const ids = publicIds.filter(Boolean);
   let deleted = 0;
   let failed = 0;
-  const BATCH = 100; // Cloudinary delete_resources accepts up to 100 ids/call
-
-  for (let i = 0; i < publicIds.length; i += BATCH) {
-    const chunk = publicIds.slice(i, i + BATCH);
+  const BATCH = 100;
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const chunk = ids.slice(i, i + BATCH);
     try {
       const res = await cloudinary.api.delete_resources(chunk);
       const outcomes = (res.deleted ?? {}) as Record<string, string>;
@@ -470,11 +529,49 @@ export async function deleteAllScreenshots(): Promise<DeleteScreenshotsResult> {
       failed += chunk.length;
     }
   }
+  return { deleted, failed };
+}
 
-  const upd = await Order.updateMany(
-    { "payment.screenshotPublicId": { $exists: true } },
-    { $unset: { "payment.screenshotUrl": "", "payment.screenshotPublicId": "" } },
-  );
+async function collectScreenshotPublicIds(
+  filter: Record<string, unknown>,
+): Promise<string[]> {
+  const docs = await Order.find(
+    { ...filter, "payment.screenshotPublicId": { $exists: true, $ne: null } },
+    { "payment.screenshotPublicId": 1 },
+  ).lean<{ payment: { screenshotPublicId?: string } }[]>();
+  return docs
+    .map((d) => d.payment.screenshotPublicId)
+    .filter((x): x is string => !!x);
+}
 
-  return { deleted, failed, ordersUpdated: upd.modifiedCount };
+/** Delete a single order (and its Cloudinary screenshot + activity). */
+export async function deleteOrder(id: string): Promise<boolean> {
+  if (!mongoose.Types.ObjectId.isValid(id)) return false;
+  await connectToDatabase();
+  const doc = await Order.findById(id).lean<OrderLean>();
+  if (!doc) return false;
+  if (doc.payment.screenshotPublicId) {
+    await deleteCloudinaryByPublicIds([doc.payment.screenshotPublicId]);
+  }
+  await Order.deleteOne({ _id: doc._id });
+  await Activity.deleteMany({ orderNumber: doc.orderNumber });
+  return true;
+}
+
+export interface DeleteAllOrdersResult {
+  deletedOrders: number;
+  deletedScreenshots: number;
+}
+
+/** Delete every order (+ all Cloudinary screenshots + all activity). */
+export async function deleteAllOrders(): Promise<DeleteAllOrdersResult> {
+  await connectToDatabase();
+  const publicIds = await collectScreenshotPublicIds({});
+  await deleteCloudinaryByPublicIds(publicIds);
+  const del = await Order.deleteMany({});
+  await Activity.deleteMany({});
+  return {
+    deletedOrders: del.deletedCount ?? 0,
+    deletedScreenshots: publicIds.length,
+  };
 }
