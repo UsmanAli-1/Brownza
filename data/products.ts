@@ -10,7 +10,7 @@ import type { CategorySlug, Product } from "@/types";
  * Badges are assigned intentionally from a fixed vocabulary:
  * Signature · Best Seller · Popular · Fresh · Customer Favorite · Limited.
  */
-const PLACEHOLDER_IMAGE = "/images/products/product-1.png";
+const PLACEHOLDER_IMAGE = "/images/products/logo.png";
 
 export const products: readonly Product[] = [
   // ---- Cookies ----
@@ -21,7 +21,7 @@ export const products: readonly Product[] = [
     description: "A soft-baked cookie with a warm, molten Nutella heart.",
     price: 450,
     category: "cookies",
-    image: "/images/products/classic_cookie.png",
+    image: "/images/products/classic_cookie_2.png",
     featured: true,
     available: true,
     badge: "Signature",
@@ -49,7 +49,7 @@ export const products: readonly Product[] = [
     description: "Our signature bake — dense, glossy-topped and molten-centred.",
     price: 1200,
     category: "brownies",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/classic_brownie.png",
     featured: true,
     available: true,
     badge: "Best Seller",
@@ -62,7 +62,7 @@ export const products: readonly Product[] = [
     description: "Fudge brownie topped with cookies-and-cream and Oreo crumble.",
     price: 1300,
     category: "brownies",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/oreo_brownie.png",
     featured: true,
     available: true,
     badge: "Popular",
@@ -75,7 +75,7 @@ export const products: readonly Product[] = [
     description: "Caramelised Biscoff spread and Lotus crunch over rich fudge.",
     price: 1400,
     category: "brownies",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/lotus_brownie.png",
     featured: true,
     available: true,
     badge: "Customer Favorite",
@@ -88,7 +88,7 @@ export const products: readonly Product[] = [
     description: "Fudge brownie loaded with toasted, buttery walnuts.",
     price: 1300,
     category: "brownies",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/walnut_brownie.png",
     featured: false,
     available: true,
     serves: "Box of 6",
@@ -100,7 +100,7 @@ export const products: readonly Product[] = [
     description: "Dark, milk and white chocolate folded into one decadent bake.",
     price: 1300,
     category: "brownies",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/triple_brownie.png",
     featured: false,
     available: true,
     serves: "Box of 6",
@@ -112,7 +112,7 @@ export const products: readonly Product[] = [
     description: "Swirled and stuffed with hazelnut Nutella throughout.",
     price: 1300,
     category: "brownies",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/nutella_brownie.png",
     featured: false,
     available: true,
     badge: "Popular",
@@ -125,7 +125,7 @@ export const products: readonly Product[] = [
     description: "Poppable, bite-sized fudge brownies — perfect for sharing.",
     price: 1000,
     category: "brownies",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/brownie_bites.png",
     featured: false,
     available: true,
     badge: "Fresh",
@@ -138,7 +138,7 @@ export const products: readonly Product[] = [
     description: "Build your own box — pick your toppings and make it yours.",
     price: 1400,
     category: "brownies",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/customized_brownie.png",
     featured: false,
     available: true,
     badge: "Limited",
@@ -151,7 +151,7 @@ export const products: readonly Product[] = [
     description: "One generous, shareable slab of pure fudge indulgence.",
     price: 1400,
     category: "brownies",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/brownie_slob.png",
     featured: false,
     available: true,
     serves: "1 large slab",
@@ -186,42 +186,18 @@ export const products: readonly Product[] = [
 
   // ---- Lasagna ----
   {
-    id: "lasagna-small",
-    slug: "lasagna-small",
-    name: "Lasagna — Small Box",
+    id: "lasagna",
+    slug: "lasagna",
+    name: "Lasagna ",
     description: "Layered pasta, rich sauce and molten cheese, baked golden.",
     price: 400,
     category: "lasagna",
-    image: PLACEHOLDER_IMAGE,
+    image: "/images/products/lasagne.png",
     featured: false,
     available: true,
-    serves: "Serves 1",
+    serves: "",
   },
-  {
-    id: "lasagna-medium",
-    slug: "lasagna-medium",
-    name: "Lasagna — Medium Box",
-    description: "Our signature lasagna in a generous, shareable portion.",
-    price: 800,
-    category: "lasagna",
-    image: PLACEHOLDER_IMAGE,
-    featured: false,
-    available: true,
-    badge: "Popular",
-    serves: "Serves 2–3",
-  },
-  {
-    id: "lasagna-large",
-    slug: "lasagna-large",
-    name: "Lasagna — Large Box",
-    description: "A family-sized tray of deep-layered, cheesy comfort.",
-    price: 1200,
-    category: "lasagna",
-    image: PLACEHOLDER_IMAGE,
-    featured: false,
-    available: true,
-    serves: "Serves 4–5",
-  },
+
 ] as const;
 
 // ---- Selectors (backend-ready access helpers) ----
