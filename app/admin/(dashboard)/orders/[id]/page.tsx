@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ExternalLink, XCircle } from "lucide-react";
 import { getOrderById } from "@/lib/services/order-service";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
-import { StatusActions } from "@/components/admin/status-actions";
+import { StatusSelect } from "@/components/admin/status-select";
 import { VerifyPaymentButton } from "@/components/admin/verify-payment-button";
 import { BackButton } from "@/components/common/back-button";
 import { Separator } from "@/components/ui/separator";
@@ -51,7 +51,7 @@ export default async function AdminOrderDetailPage({
     : null;
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <BackButton fallbackHref="/admin/orders" label="Back to orders" />
 
       {order.status === "cancelled" && (
@@ -68,7 +68,7 @@ export default async function AdminOrderDetailPage({
 
       <div className="divide-y divide-border rounded-3xl border border-border bg-card shadow-soft">
         {/* Order information */}
-        <section className="flex flex-col gap-4 p-6">
+        <section className="flex flex-col gap-4 p-5">
           <SectionLabel>Order information</SectionLabel>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex flex-col gap-2">
@@ -78,17 +78,16 @@ export default async function AdminOrderDetailPage({
               <p className="text-sm text-muted-foreground">Placed {placedAt}</p>
               <OrderStatusBadge status={order.status} className="w-fit" />
             </div>
-            <StatusActions
+            <StatusSelect
               orderId={order._id}
               orderNumber={order.orderNumber}
               status={order.status}
-              size="default"
             />
           </div>
         </section>
 
         {/* Customer */}
-        <section className="flex flex-col gap-3 p-6">
+        <section className="flex flex-col gap-3 p-5">
           <SectionLabel>Customer</SectionLabel>
           <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
             <Field label="Name" value={order.customer.name} />
@@ -99,7 +98,7 @@ export default async function AdminOrderDetailPage({
         </section>
 
         {/* Delivery */}
-        <section className="flex flex-col gap-3 p-6">
+        <section className="flex flex-col gap-3 p-5">
           <SectionLabel>Delivery</SectionLabel>
           <dl className="flex flex-col gap-3">
             <Field label="Area" value={order.delivery.city} />
@@ -109,7 +108,7 @@ export default async function AdminOrderDetailPage({
         </section>
 
         {/* Products */}
-        <section className="flex flex-col gap-3 p-6">
+        <section className="flex flex-col gap-3 p-5">
           <SectionLabel>Products</SectionLabel>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -144,7 +143,7 @@ export default async function AdminOrderDetailPage({
         </section>
 
         {/* Payment */}
-        <section className="flex flex-col gap-3 p-6">
+        <section className="flex flex-col gap-3 p-5">
           <SectionLabel>Payment</SectionLabel>
           <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
             <Field
@@ -163,44 +162,43 @@ export default async function AdminOrderDetailPage({
           </dl>
 
           {order.payment.method === "ONLINE" && (
-            <div className="mt-1 flex flex-col gap-3">
+            <div className="mt-1 flex flex-col items-start gap-3">
               {order.payment.screenshotUrl ? (
-                <>
-                  <a
-                    href={order.payment.screenshotUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative block w-fit overflow-hidden rounded-xl border border-border"
-                  >
-                    <Image
-                      src={order.payment.screenshotUrl}
-                      alt="Payment screenshot"
-                      width={480}
-                      height={640}
-                      className="max-h-80 w-auto bg-muted object-contain"
-                    />
-                    <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-dark/70 px-2.5 py-1 text-xs font-medium text-white">
-                      <ExternalLink className="size-3" />
-                      Open
-                    </span>
-                  </a>
-                  <VerifyPaymentButton
-                    orderId={order._id}
-                    orderNumber={order.orderNumber}
-                    verified={order.payment.paymentVerified}
+                <a
+                  href={order.payment.screenshotUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative block w-fit overflow-hidden rounded-xl border border-border"
+                >
+                  <Image
+                    src={order.payment.screenshotUrl}
+                    alt="Payment screenshot"
+                    width={480}
+                    height={640}
+                    className="max-h-80 w-auto bg-muted object-contain"
                   />
-                </>
+                  <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-dark/70 px-2.5 py-1 text-xs font-medium text-white">
+                    <ExternalLink className="size-3" />
+                    Open
+                  </span>
+                </a>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   No screenshot uploaded.
                 </p>
               )}
+              {/* Verify payment is always available for online orders. */}
+              <VerifyPaymentButton
+                orderId={order._id}
+                orderNumber={order.orderNumber}
+                verified={order.payment.paymentVerified}
+              />
             </div>
           )}
         </section>
 
         {/* Order summary */}
-        <section className="flex flex-col gap-3 p-6">
+        <section className="flex flex-col gap-3 p-5">
           <SectionLabel>Order summary</SectionLabel>
           <dl className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between">
