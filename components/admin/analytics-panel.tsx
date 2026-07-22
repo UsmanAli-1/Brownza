@@ -1,5 +1,5 @@
-import { getAnalytics } from "@/lib/services/order-service";
 import { formatPrice } from "@/lib/utils";
+import type { AnalyticsData } from "@/types/order";
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
@@ -14,9 +14,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export async function AnalyticsPanel() {
-  const a = await getAnalytics();
-
+export function AnalyticsPanel({ analytics: a }: { analytics: AnalyticsData }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
       <h2 className="font-heading text-lg font-semibold text-foreground">
