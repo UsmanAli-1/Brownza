@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -15,6 +15,7 @@ import { ORDER_STATUS_OPTIONS } from "@/lib/order-status";
  */
 export function OrderSearch() {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useSearchParams();
   const currentSearch = params.get("search") ?? "";
   const [value, setValue] = React.useState(currentSearch);
@@ -27,11 +28,9 @@ export function OrderSearch() {
       mutate(next);
       next.delete("page"); // any new query resets to page 1
       const qs = next.toString();
-      startTransition(() =>
-        router.push(qs ? `/admin/orders?${qs}` : "/admin/orders"),
-      );
+      startTransition(() => router.push(qs ? `${pathname}?${qs}` : pathname));
     },
-    [params, router],
+    [params, router, pathname],
   );
 
   const applySearch = React.useCallback(
