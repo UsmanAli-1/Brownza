@@ -42,23 +42,17 @@ export const ORDER_STATUS_META: Record<
   },
 };
 
-/** Single forward step for each status (null = terminal / no forward step). */
-export const ORDER_STATUS_NEXT: Record<OrderStatus, OrderStatus | null> = {
-  pending: "accepted",
-  accepted: "preparing",
-  preparing: "ready",
-  ready: "out-for-delivery",
-  "out-for-delivery": "delivered",
-  delivered: null,
-  cancelled: null,
-};
-
-/** Valid transitions — enforced on the server so steps can't be skipped. */
+/**
+ * Options the single status dropdown offers from each status (also the
+ * server-side transition allow-list). From Pending only Accept/Cancel; once
+ * Accepted the bakery can pick any forward stage. Backward moves and changes
+ * from terminal states are rejected.
+ */
 export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ["accepted", "cancelled"],
-  accepted: ["preparing", "cancelled"],
-  preparing: ["ready", "cancelled"],
-  ready: ["out-for-delivery", "cancelled"],
+  accepted: ["preparing", "ready", "out-for-delivery", "delivered", "cancelled"],
+  preparing: ["ready", "out-for-delivery", "delivered", "cancelled"],
+  ready: ["out-for-delivery", "delivered", "cancelled"],
   "out-for-delivery": ["delivered", "cancelled"],
   delivered: [],
   cancelled: [],
@@ -72,15 +66,15 @@ export function isTerminal(status: OrderStatus): boolean {
   return status === "delivered" || status === "cancelled";
 }
 
-/** Button label for advancing an order into a given status. */
-export const ADVANCE_LABEL: Record<OrderStatus, string> = {
-  pending: "Set pending",
-  accepted: "Accept order",
-  preparing: "Start preparing",
-  ready: "Mark as ready",
+/** Short labels used inside the status dropdown. */
+export const ACTION_LABEL: Record<OrderStatus, string> = {
+  pending: "Pending",
+  accepted: "Accept",
+  preparing: "Preparing",
+  ready: "Ready",
   "out-for-delivery": "Out for delivery",
-  delivered: "Mark delivered",
-  cancelled: "Cancel order",
+  delivered: "Delivered",
+  cancelled: "Cancel",
 };
 
 export const ORDER_STATUS_OPTIONS = ORDER_STATUSES.map((status) => ({

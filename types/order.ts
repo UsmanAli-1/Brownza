@@ -60,6 +60,9 @@ export interface OrderEvent {
   status: OrderStatus;
   paymentVerified: boolean;
   cancellationReason?: string;
+  /** Included so the admin new-order toast needn't refetch. */
+  customerName?: string;
+  total?: number;
 }
 
 /** Customer-safe order view for the public tracking page (no PII beyond area). */
