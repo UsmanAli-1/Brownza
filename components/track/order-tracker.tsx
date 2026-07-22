@@ -8,10 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { readLastOrder } from "@/lib/last-order";
 import { useHydrated } from "@/lib/use-hydrated";
-import { useOrderStream } from "@/lib/hooks/use-order-stream";
 import { LIFECYCLE_STEPS, ORDER_STATUS_META } from "@/lib/order-status";
 import { cn, formatPrice } from "@/lib/utils";
-import type { OrderEvent, OrderTrackView } from "@/types/order";
+import type { OrderTrackView } from "@/types/order";
 
 type LoadState = "idle" | "loading" | "loaded" | "empty" | "notfound" | "error";
 
@@ -133,19 +132,26 @@ export function OrderTracker() {
     };
   }, [hydrated]);
 
-  const onEvent = React.useCallback((event: OrderEvent) => {
-    setOrder((prev) =>
-      prev
-        ? {
-            ...prev,
-            status: event.status,
-            paymentVerified: event.paymentVerified,
-            cancellationReason: event.cancellationReason ?? prev.cancellationReason,
-          }
-        : prev,
-    );
-  }, []);
-  useOrderStream(onEvent, orderId ?? undefined);
+  // Live updates via lightweight polling (every 5s) while the page is open.
+  // Stops automatically once the order is delivered or cancelled.
+  const isActive =
+    !!order && order.status !== "delivered" && order.status !== "cancelled";
+  React.useEffect(() => {
+    if (!orderId || !isActive) return;
+    const interval = setInterval(() => {
+      void (async () => {
+        try {
+          const res = await fetch(`/api/orders/track/${orderId}`);
+          if (!res.ok) return;
+          const data = (await res.json()) as { order: OrderTrackView };
+          setOrder(data.order);
+        } catch {
+          // transient error — keep polling
+        }
+      })();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [orderId, isActive]);
 
   if (!hydrated || state === "loading" || state === "idle") {
     return (

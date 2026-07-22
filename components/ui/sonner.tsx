@@ -10,6 +10,7 @@ function Toaster(props: ToasterProps) {
   return (
     <Sonner
       position="bottom-right"
+      visibleToasts={3}
       gap={10}
       toastOptions={{
         classNames: {
