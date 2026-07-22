@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { updateOrderSchema } from "@/lib/validations/order";
 import {
+  deleteOrder,
   getOrderById,
   InvalidTransitionError,
   updateOrderStatus,
@@ -23,6 +24,19 @@ export async function GET(_req: Request, ctx: Context) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
   return NextResponse.json({ order });
+}
+
+/** Admin only — delete a single order (and its screenshot). */
+export async function DELETE(_req: Request, ctx: Context) {
+  if (!(await getAdminSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { id } = await ctx.params;
+  const ok = await deleteOrder(id);
+  if (!ok) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  }
+  return NextResponse.json({ success: true });
 }
 
 /** Admin only — update status and/or verify payment. */

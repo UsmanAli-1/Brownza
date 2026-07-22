@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { createOrderSchema } from "@/lib/validations/order";
-import { createOrder, listOrders } from "@/lib/services/order-service";
+import {
+  createOrder,
+  deleteAllOrders,
+  listOrders,
+} from "@/lib/services/order-service";
 import { ORDER_STATUSES, type OrderStatus } from "@/types";
 import type { CreateOrderInput } from "@/types/order";
 
@@ -53,6 +57,23 @@ export async function GET(req: Request) {
     console.error("GET /api/orders", error);
     return NextResponse.json(
       { error: "Failed to load orders" },
+      { status: 500 },
+    );
+  }
+}
+
+/** Admin only — delete ALL orders (and their Cloudinary screenshots). */
+export async function DELETE() {
+  if (!(await getAdminSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  try {
+    const result = await deleteAllOrders();
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("DELETE /api/orders", error);
+    return NextResponse.json(
+      { error: "Failed to delete orders" },
       { status: 500 },
     );
   }
