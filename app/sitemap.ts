@@ -1,12 +1,13 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
-import { categories } from "@/data/categories";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
   const base = siteConfig.url;
 
-  const staticRoutes: MetadataRoute.Sitemap = [
+  // Categories are in-page anchors on /products now (not separate filtered
+  // routes), so there is nothing distinct for search engines to index there.
+  return [
     // The menu is the primary landing page ( / redirects here ).
     {
       url: `${base}/products`,
@@ -21,13 +22,4 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
   ];
-
-  const categoryRoutes: MetadataRoute.Sitemap = categories.map((category) => ({
-    url: `${base}/products?category=${category.slug}`,
-    lastModified,
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
-
-  return [...staticRoutes, ...categoryRoutes];
 }

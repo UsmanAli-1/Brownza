@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { Container } from "@/components/common/container";
 import { SectionHeading } from "@/components/common/section-heading";
 import { Reveal } from "@/components/motion/reveal";
 import { MenuHero } from "@/components/menu/menu-hero";
 import { PopularFavorites } from "@/components/menu/popular-favorites";
-import { CtaBand } from "@/components/menu/cta-band";
 import { CategoryFilter } from "@/components/product/category-filter";
 import { ProductGrid } from "@/components/product/product-grid";
-import { getAllProducts, getProductsByCategory } from "@/data/products";
-import { getCategory } from "@/data/categories";
-import type { CategorySlug } from "@/types";
+import { getProductsByCategory } from "@/data/products";
+import { categories } from "@/data/categories";
 
 export const metadata: Metadata = {
   title: "Menu",
@@ -19,76 +16,49 @@ export const metadata: Metadata = {
   alternates: { canonical: "/products" },
 };
 
-const VALID_CATEGORIES: readonly CategorySlug[] = [
-  "cookies",
-  "brownies",
-  "dumplings",
-  "lasagna",
-];
-
-function isValidCategory(value: string | undefined): value is CategorySlug {
-  return !!value && VALID_CATEGORIES.includes(value as CategorySlug);
-}
-
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ category?: string }>;
-}) {
-  const { category } = await searchParams;
-  const activeCategory = isValidCategory(category) ? category : undefined;
-  const activeMeta = activeCategory ? getCategory(activeCategory) : undefined;
-  const list = activeCategory
-    ? getProductsByCategory(activeCategory)
-    : getAllProducts();
-
+export default function ProductsPage() {
   return (
     <>
       <MenuHero />
 
-      {/* Popular Favorites is a curated showcase — only on the unfiltered view. */}
-      {!activeCategory && <PopularFavorites />}
+      <div className="sticky top-0 z-30 border-b border-border bg-muted/95 py-3 backdrop-blur-sm">
+        <Container>
+          <CategoryFilter />
+        </Container>
+      </div>
 
-      <section
-        id="menu"
-        className="scroll-mt-24 border-t border-border bg-muted/30 py-14 md:py-20"
-      >
-        <Container className="flex flex-col gap-8">
+      <PopularFavorites />
+
+      <section className="border-t border-border bg-muted/30 py-14 md:py-20">
+        <Container className="flex flex-col gap-10">
           <Reveal>
             <SectionHeading
               eyebrow="The Brownza menu"
-              title={activeMeta ? activeMeta.name : "Handcrafted, Made to Order"}
-              description={
-                activeMeta
-                  ? activeMeta.description
-                  : "Freshly baked after you order — never frozen, never mass-produced. Explore everything we make."
-              }
+              title="Handcrafted, Made to Order"
+              description="Freshly baked after you order — never frozen, never mass-produced. Explore everything we make."
             />
           </Reveal>
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <Suspense fallback={<div className="h-10" />}>
-              <CategoryFilter />
-            </Suspense>
-            <p
-              className="shrink-0 text-sm text-muted-foreground"
-              aria-live="polite"
-            >
-              {list.length} item{list.length === 1 ? "" : "s"}
-            </p>
+          <div className="flex flex-col gap-12">
+            {categories.map((category) => {
+              const items = getProductsByCategory(category.slug);
+              if (items.length === 0) return null;
+              return (
+                <div
+                  key={category.slug}
+                  id={category.slug}
+                  className="scroll-mt-24 flex flex-col gap-5"
+                >
+                  <h3 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">
+                    {category.name}
+                  </h3>
+                  <ProductGrid products={items} />
+                </div>
+              );
+            })}
           </div>
-
-          {list.length > 0 ? (
-            <ProductGrid key={activeCategory ?? "all"} products={list} />
-          ) : (
-            <p className="py-16 text-center text-muted-foreground">
-              No items found in this category.
-            </p>
-          )}
         </Container>
       </section>
-
-      <CtaBand />
     </>
   );
 }

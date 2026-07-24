@@ -10,14 +10,10 @@ export function PopularFavorites() {
   if (featured.length === 0) return null;
 
   return (
-    <section className="py-14 md:py-20">
+    <section id="favourites" className="scroll-mt-24 py-14 md:py-20">
       <Container className="flex flex-col gap-8">
         <Reveal>
-          <SectionHeading
-            eyebrow="Loved by our customers"
-            title="Popular Favorites"
-            description="The bakes our customers come back for, again and again."
-          />
+          <SectionHeading eyebrow="Loved by our customers" title="Popular Favorites" />
         </Reveal>
         <ProductGrid products={featured} />
       </Container>
