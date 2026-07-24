@@ -58,6 +58,10 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
+    /* Reserve the scrollbar's width permanently so its appearance/disappearance
+       (e.g. when browser zoom changes how much a page scrolls) never shifts
+       fixed-width content sideways. */
+    scrollbar-gutter: stable;
   }
 
   body {
