@@ -49,10 +49,10 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 w-full border-b transition-all duration-300 ease-lux",
+        "relative z-40 w-full border-b transition-all duration-300 ease-lux",
         scrolled
-          ? "border-border bg-background/90 shadow-soft backdrop-blur-md"
-          : "border-transparent bg-background/75 backdrop-blur-sm",
+          ? "border-border bg-muted/95 shadow-soft backdrop-blur-md"
+          : "border-transparent bg-muted/80 backdrop-blur-sm",
       )}
     >
       <Container className="relative flex h-16 items-center gap-3 md:h-20 lg:h-24">
