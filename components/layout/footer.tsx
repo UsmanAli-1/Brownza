@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { MapPin, MessageCircle, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { Container } from "@/components/common/container";
 import { Logo } from "@/components/common/logo";
-import { InstagramIcon } from "@/components/icons/social";
+import { FacebookIcon, InstagramIcon } from "@/components/icons/social";
 import { siteConfig } from "@/config/site";
 import { CONTACT, NAV_LINKS } from "@/lib/constants";
 import { categories } from "@/data/categories";
@@ -16,29 +16,34 @@ export function Footer() {
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
           {/* Brand */}
           <div className="flex flex-col gap-5">
-            <Logo invert />
+            <Logo invert size="lg" />
             <p className="max-w-xs text-sm leading-relaxed text-primary-foreground/70">
               {siteConfig.description}
             </p>
-            <div className="flex items-center gap-3">
-              <a
-                href={CONTACT.instagramHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Instagram"
-                className="inline-flex size-10 items-center justify-center rounded-full border border-primary-foreground/15 text-primary-foreground/80 transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground"
-              >
-                <InstagramIcon className="size-5" />
-              </a>
-              <a
-                href={CONTACT.whatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="WhatsApp"
-                className="inline-flex size-10 items-center justify-center rounded-full border border-primary-foreground/15 text-primary-foreground/80 transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground"
-              >
-                <MessageCircle className="size-5" />
-              </a>
+            <div className="flex flex-col gap-2.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/60">
+                Follow us
+              </span>
+              <div className="flex items-center gap-3">
+                <a
+                  href={CONTACT.instagramHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  className="inline-flex size-10 items-center justify-center rounded-full border border-primary-foreground/15 text-primary-foreground/80 transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground"
+                >
+                  <InstagramIcon className="size-5" />
+                </a>
+                <a
+                  href={CONTACT.facebookHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Facebook"
+                  className="inline-flex size-10 items-center justify-center rounded-full border border-primary-foreground/15 text-primary-foreground/80 transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground"
+                >
+                  <FacebookIcon className="size-5" />
+                </a>
+              </div>
             </div>
           </div>
 
@@ -86,10 +91,6 @@ export function Footer() {
             <h2 className="font-heading text-lg font-semibold">Get in touch</h2>
             <ul className="flex flex-col gap-3.5 text-sm text-primary-foreground/70">
               <li className="flex items-start gap-3">
-                <MapPin className="mt-0.5 size-5 shrink-0 text-accent" />
-                <span>{CONTACT.city}, Pakistan</span>
-              </li>
-              <li className="flex items-start gap-3">
                 <Phone className="mt-0.5 size-5 shrink-0 text-accent" />
                 <a
                   href={CONTACT.phoneHref}
@@ -99,26 +100,17 @@ export function Footer() {
                 </a>
               </li>
               <li className="flex items-start gap-3">
-                <MessageCircle className="mt-0.5 size-5 shrink-0 text-accent" />
+                <Mail className="mt-0.5 size-5 shrink-0 text-accent" />
                 <a
-                  href={CONTACT.whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={CONTACT.emailHref}
                   className="transition-colors hover:text-accent"
                 >
-                  WhatsApp
+                  {CONTACT.emailDisplay}
                 </a>
               </li>
               <li className="flex items-start gap-3">
-                <InstagramIcon className="mt-0.5 size-5 shrink-0 text-accent" />
-                <a
-                  href={CONTACT.instagramHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="transition-colors hover:text-accent"
-                >
-                  {CONTACT.instagramHandle}
-                </a>
+                <MapPin className="mt-0.5 size-5 shrink-0 text-accent" />
+                <span>{CONTACT.city}</span>
               </li>
             </ul>
           </div>
@@ -129,6 +121,21 @@ export function Footer() {
             © {year} {siteConfig.name}. All rights reserved.
           </p>
           <p>Handcrafted daily · Freshly baked to order.</p>
+        </div>
+
+        {/* Development credit — logo slot left blank for Techmorph's mark;
+            update the link once the real Techmorph URL is available. */}
+        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-primary-foreground/50">
+          <span
+            aria-hidden
+            className="size-5 shrink-0 rounded-full bg-primary-foreground/10"
+          />
+          <a
+            href={siteConfig.url}
+            className="transition-colors hover:text-accent"
+          >
+            Powered by Techmorph Innovation
+          </a>
         </div>
       </Container>
     </footer>

@@ -9,16 +9,24 @@ interface LogoProps {
   showWordmark?: boolean;
   /** Use light text on dark surfaces (e.g. footer). */
   invert?: boolean;
+  /** "lg" for prominent placements (e.g. the footer brand block). */
+  size?: "md" | "lg";
 }
 
 /** Brand lockup: logo mark + wordmark, linking home. Reused in nav & footer. */
-function Logo({ className, showWordmark = true, invert = false }: LogoProps) {
+function Logo({
+  className,
+  showWordmark = true,
+  invert = false,
+  size = "md",
+}: LogoProps) {
   return (
     <Link
       href="/products"
       aria-label={`${siteConfig.name} — menu`}
       className={cn(
-        "group inline-flex items-center gap-2.5 rounded-lg",
+        "group inline-flex items-center rounded-lg",
+        size === "lg" ? "gap-3.5" : "gap-2.5",
         className,
       )}
     >
@@ -26,13 +34,17 @@ function Logo({ className, showWordmark = true, invert = false }: LogoProps) {
         src={logoImg}
         alt=""
         aria-hidden
-        sizes="44px"
-        className="h-9 w-auto object-contain transition-transform duration-300 ease-lux group-hover:scale-105 md:h-10"
+        sizes={size === "lg" ? "80px" : "44px"}
+        className={cn(
+          "w-auto object-contain transition-transform duration-300 ease-lux group-hover:scale-105",
+          size === "lg" ? "h-16 md:h-20" : "h-9 md:h-10",
+        )}
       />
       {showWordmark && (
         <span
           className={cn(
-            "font-heading text-xl font-semibold tracking-tight",
+            "font-heading font-semibold tracking-tight",
+            size === "lg" ? "text-3xl md:text-4xl" : "text-xl",
             invert ? "text-primary-foreground" : "text-foreground",
           )}
         >
