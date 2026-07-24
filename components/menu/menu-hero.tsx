@@ -3,7 +3,6 @@
 import * as React from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Container } from "@/components/common/container";
 import { cn } from "@/lib/utils";
 
 const SLIDES = [
@@ -37,8 +36,16 @@ export function MenuHero() {
   };
 
   return (
-    <section className="pt-3 sm:pt-4">
-      <Container>
+    <section className="pt-3 pb-3 sm:pt-4 sm:pb-4">
+      {/*
+        Deliberately NOT the shared `Container` (max-w-7xl): that cap makes
+        the hero look like it "shrinks" inward at wide/zoomed-out viewports,
+        because the fixed-width box becomes a smaller fraction of a wider
+        viewport. A much larger cap keeps the hero visually full-width at
+        realistic viewport sizes while still preventing absurd stretching
+        on ultra-wide displays.
+      */}
+      <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-5 lg:px-8">
         <div className="relative aspect-[7/3] w-full overflow-hidden rounded-2xl bg-cocoa-gradient md:rounded-3xl">
           {SLIDES.map((slide, i) => (
             <div
@@ -93,7 +100,7 @@ export function MenuHero() {
             ))}
           </div>
         </div>
-      </Container>
+      </div>
     </section>
   );
 }
