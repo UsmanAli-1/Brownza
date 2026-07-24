@@ -10,7 +10,7 @@ export function PopularFavorites() {
   if (featured.length === 0) return null;
 
   return (
-    <section id="favourites" className="scroll-mt-24 py-14 md:py-20">
+    <section id="favourites" className="scroll-mt-24 ">
       <Container className="flex flex-col gap-8">
         <Reveal>
           <SectionHeading eyebrow="Loved by our customers" title="Popular Favorites" />
