@@ -59,11 +59,8 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     images: [siteConfig.ogImage],
   },
-  icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
-  },
+  // Favicon/apple-touch-icon come from app/icon.png + app/apple-icon.png
+  // (Next.js file-convention metadata) — no explicit `icons` override needed.
   robots: {
     index: true,
     follow: true,
