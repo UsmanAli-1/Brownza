@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MapPin } from "lucide-react";
+import { MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useLocationStore } from "@/lib/location-store";
@@ -25,6 +25,8 @@ export function LocationGate() {
   const hydrated = useHydrated();
   const savedArea = useLocationStore((s) => s.area);
   const setArea = useLocationStore((s) => s.setArea);
+  const pickerOpen = useLocationStore((s) => s.pickerOpen);
+  const closePicker = useLocationStore((s) => s.closePicker);
 
   const [selected, setSelected] =
     React.useState<DeliveryArea>(DEFAULT_DELIVERY_AREA);
@@ -33,11 +35,25 @@ export function LocationGate() {
   const userTouched = React.useRef(false);
   const attempted = React.useRef(false);
 
-  const open = hydrated && savedArea === null;
+  const isFirstVisit = hydrated && savedArea === null;
+  const open = isFirstVisit || (hydrated && pickerOpen);
 
-  // Auto-detect once when the popup opens (does not block manual selection).
+  // Reopening with an existing choice (via the navbar) — start from it.
+  // Adjusting state during render (React's documented pattern for "reset on
+  // prop change") rather than in an effect, so this doesn't cascade renders.
+  const [prevPickerOpen, setPrevPickerOpen] = React.useState(pickerOpen);
+  if (pickerOpen !== prevPickerOpen) {
+    setPrevPickerOpen(pickerOpen);
+    if (pickerOpen && savedArea) {
+      setSelected(savedArea);
+    }
+  }
+
+  // Auto-detect once, only for a genuine first visit — reopening the picker
+  // later (from the navbar) to change an existing choice should not re-trigger
+  // geolocation.
   React.useEffect(() => {
-    if (!open || attempted.current) return;
+    if (!isFirstVisit || attempted.current) return;
     attempted.current = true;
     setStatus("detecting");
     detectDeliveryArea()
@@ -47,7 +63,7 @@ export function LocationGate() {
         if (!userTouched.current) setSelected(res.area);
       })
       .catch(() => setStatus("failed"));
-  }, [open]);
+  }, [isFirstVisit]);
 
   // Lock body scroll while the popup is open.
   React.useEffect(() => {
@@ -77,7 +93,11 @@ export function LocationGate() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-dark/60 backdrop-blur-sm" aria-hidden />
+          <div
+            className="absolute inset-0 bg-dark/60 backdrop-blur-sm"
+            aria-hidden
+            onClick={closePicker}
+          />
           <motion.div
             role="dialog"
             aria-modal="true"
@@ -88,6 +108,16 @@ export function LocationGate() {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-lift sm:p-8"
           >
+            {!isFirstVisit && (
+              <button
+                type="button"
+                onClick={closePicker}
+                aria-label="Close"
+                className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            )}
             <span className="flex size-12 items-center justify-center rounded-2xl bg-accent-soft text-secondary">
               <MapPin className="size-6" />
             </span>
@@ -115,6 +145,7 @@ export function LocationGate() {
                 onChange={(e) => {
                   userTouched.current = true;
                   setSelected(e.target.value as DeliveryArea);
+                  setDetectedLabel(null);
                 }}
               >
                 {DELIVERY_AREAS.map((area) => (
@@ -130,7 +161,7 @@ export function LocationGate() {
             </div>
 
             <Button
-              onClick={() => setArea(selected)}
+              onClick={() => setArea(selected, detectedLabel)}
               size="lg"
               className="mt-5 w-full"
             >

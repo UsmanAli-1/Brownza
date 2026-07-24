@@ -3,12 +3,13 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, ShoppingBag } from "lucide-react";
+import { ChevronRight, MapPin, Phone, ShoppingBag } from "lucide-react";
 import { Container } from "@/components/common/container";
 import { Button } from "@/components/ui/button";
 import { CONTACT } from "@/lib/constants";
 import { useCartCount } from "@/lib/use-cart";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useLocationStore } from "@/lib/location-store";
 import { cn } from "@/lib/utils";
 import logoImg from "@/public/logo.png";
 
@@ -38,6 +39,10 @@ export function Navbar() {
   const [scrolled, setScrolled] = React.useState(false);
   const hydrated = useHydrated();
   const count = useCartCount();
+  const savedArea = useLocationStore((s) => s.area);
+  const savedLabel = useLocationStore((s) => s.label);
+  const openLocationPicker = useLocationStore((s) => s.openPicker);
+  const locationLabel = hydrated ? savedLabel || savedArea || CONTACT.city : CONTACT.city;
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -56,22 +61,28 @@ export function Navbar() {
       )}
     >
       <Container className="relative flex h-16 items-center gap-3 md:h-20 lg:h-24">
-        {/* Desktop: phone + city */}
-        <div className="hidden items-center gap-4 md:flex">
+        {/* Left cluster: delivery location + phone, as pill buttons.
+            Hidden below md — the floating logo sits at the left edge on
+            mobile/tablet and would otherwise overlap/intercept clicks. */}
+        <div className="hidden min-w-0 items-center gap-2 md:flex">
+          <button
+            type="button"
+            onClick={openLocationPicker}
+            aria-label="Choose delivery area"
+            className="inline-flex min-w-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground shadow-soft transition-colors hover:border-accent"
+          >
+            <MapPin className="size-4 shrink-0 text-accent" />
+            <span className="max-w-[160px] truncate">{locationLabel}</span>
+            <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+          </button>
+
           <a
             href={CONTACT.phoneHref}
-            className="inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground shadow-soft transition-colors hover:border-accent"
           >
-            <Phone className="size-4 text-accent" />
-            {CONTACT.phoneDisplay}
+            <Phone className="size-4 shrink-0 text-accent" />
+            {CONTACT.phoneDisplayIntl}
           </a>
-          <span className="h-4 w-px bg-border" aria-hidden />
-          <span className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <span className="text-accent" aria-hidden>
-              ●
-            </span>
-            {CONTACT.city}
-          </span>
         </div>
 
         {/* Floating logo — left on mobile, centered on desktop; overlaps the
@@ -93,9 +104,16 @@ export function Navbar() {
 
         {/* Right cluster */}
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-          <CartLink count={count} hydrated={hydrated} />
-
-          {/* Mobile-only phone icon */}
+          {/* Below md — compact icon-only equivalents of the left pills
+              (which are hidden here to avoid the floating logo). */}
+          <button
+            type="button"
+            onClick={openLocationPicker}
+            aria-label="Choose delivery area"
+            className="inline-flex size-10 items-center justify-center rounded-full text-primary transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:hidden"
+          >
+            <MapPin className="size-5" />
+          </button>
           <a
             href={CONTACT.phoneHref}
             aria-label="Call us"
@@ -103,6 +121,8 @@ export function Navbar() {
           >
             <Phone className="size-5" />
           </a>
+
+          <CartLink count={count} hydrated={hydrated} />
 
           <Button asChild size="sm" className="max-md:px-3">
             <Link href="/pre-order">Pre Order</Link>

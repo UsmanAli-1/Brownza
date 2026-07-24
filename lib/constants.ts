@@ -80,14 +80,17 @@ const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "03719132611";
 export const CONTACT = {
   city: "Karachi",
   phoneDisplay: formatLocal(PHONE),
+  /** International format for compact UI, e.g. "+923719132611". */
+  phoneDisplayIntl: `+${toIntl(PHONE)}`,
   phoneHref: `tel:${PHONE.replace(/\s/g, "")}`,
   whatsappDisplay: formatLocal(WHATSAPP),
   whatsappHref: `https://wa.me/${toIntl(WHATSAPP)}`,
   instagramHandle: "@brownza",
   instagramHref: "https://instagram.com/brownza",
-  // Kept for forms/metadata; not shown as a physical contact method.
-  emailDisplay: "hello@brownza.com",
-  emailHref: "mailto:hello@brownza.com",
+  // Placeholder — update once the real Brownza Facebook page exists.
+  facebookHref: "https://facebook.com/brownza",
+  emailDisplay: "brownzabyayatanas@gmail.com",
+  emailHref: "mailto:brownzabyayatanas@gmail.com",
 } as const;
 
 // ---- Bank details for online payments (client-exposed; shown at checkout) ----
