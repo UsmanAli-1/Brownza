@@ -60,7 +60,7 @@ export function CategoryFilter() {
     <div
       role="tablist"
       aria-label="Jump to category"
-      className="scrollbar-hide flex snap-x snap-mandatory items-center gap-2 overflow-x-auto pb-1"
+      className="scrollbar-hide flex snap-x snap-mandatory items-center gap-2 overflow-x-auto pb-1 sm:justify-center"
     >
       {OPTIONS.map((option) => {
         const isActive = active === option.slug;
