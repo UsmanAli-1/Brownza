@@ -12,7 +12,7 @@ import type { Product } from "@/types";
 export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 ease-lux hover:-translate-y-1 hover:shadow-card">
-      <div className="relative aspect-[3/2] overflow-hidden bg-muted">
+      <div className="relative aspect-square overflow-hidden bg-muted">
         <Image
           src={product.image}
           alt={product.name}
