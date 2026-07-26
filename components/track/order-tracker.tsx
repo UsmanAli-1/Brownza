@@ -3,14 +3,16 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Package, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { readLastOrder } from "@/lib/last-order";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useOrderStream } from "@/lib/hooks/use-order-stream";
 import { LIFECYCLE_STEPS, ORDER_STATUS_META } from "@/lib/order-status";
 import { cn, formatPrice } from "@/lib/utils";
-import type { OrderTrackView } from "@/types/order";
+import type { OrderEvent, OrderTrackView } from "@/types/order";
 
 type LoadState = "idle" | "loading" | "loaded" | "empty" | "notfound" | "error";
 
@@ -102,56 +104,60 @@ export function OrderTracker() {
   const [orderId, setOrderId] = React.useState<string | null>(null);
   const [order, setOrder] = React.useState<OrderTrackView | null>(null);
   const [state, setState] = React.useState<LoadState>("idle");
+  // Prevents re-toasting the same cancellation if this component ever
+  // re-renders/re-subscribes while already on the cancelled state.
+  const announcedCancelRef = React.useRef(false);
 
+  const fetchOrder = React.useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/orders/track/${id}`);
+      if (res.status === 404) return setState("notfound");
+      if (!res.ok) return setState("error");
+      const data = (await res.json()) as { order: OrderTrackView };
+      setOrder(data.order);
+      setState("loaded");
+    } catch {
+      setState("error");
+    }
+  }, []);
+
+  // Initial load from whatever order was last placed (localStorage).
   React.useEffect(() => {
     if (!hydrated) return;
-    let active = true;
     void (async () => {
       const last = readLastOrder();
       if (!last) {
-        if (active) setState("empty");
+        setState("empty");
         return;
       }
-      if (!active) return;
       setOrderId(last.id);
       setState("loading");
-      try {
-        const res = await fetch(`/api/orders/track/${last.id}`);
-        if (!active) return;
-        if (res.status === 404) return setState("notfound");
-        if (!res.ok) return setState("error");
-        const data = (await res.json()) as { order: OrderTrackView };
-        setOrder(data.order);
-        setState("loaded");
-      } catch {
-        if (active) setState("error");
-      }
+      await fetchOrder(last.id);
     })();
-    return () => {
-      active = false;
-    };
-  }, [hydrated]);
+  }, [hydrated, fetchOrder]);
 
-  // Live updates via lightweight polling (every 5s) while the page is open.
-  // Stops automatically once the order is delivered or cancelled.
-  const isActive =
-    !!order && order.status !== "delivered" && order.status !== "cancelled";
-  React.useEffect(() => {
-    if (!orderId || !isActive) return;
-    const interval = setInterval(() => {
-      void (async () => {
-        try {
-          const res = await fetch(`/api/orders/track/${orderId}`);
-          if (!res.ok) return;
-          const data = (await res.json()) as { order: OrderTrackView };
-          setOrder(data.order);
-        } catch {
-          // transient error — keep polling
-        }
-      })();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [orderId, isActive]);
+  // Live updates via SSE — instant instead of a 5s poll. The server only
+  // forwards events for this specific orderId (see /api/events?orderId=).
+  const handleEvent = React.useCallback(
+    (event: OrderEvent) => {
+      if (!orderId) return;
+      // Re-fetch the full customer-safe view on any change to this order —
+      // keeps this simple and always in sync with Mongo, rather than trying
+      // to hand-patch individual fields from the event payload.
+      void fetchOrder(orderId);
+
+      if (event.status === "cancelled" && !announcedCancelRef.current) {
+        announcedCancelRef.current = true;
+        toast.error("Your order was cancelled", {
+          description: event.cancellationReason || "No reason was provided.",
+          duration: 8000,
+        });
+      }
+    },
+    [orderId, fetchOrder],
+  );
+
+  useOrderStream(handleEvent, orderId ?? undefined);
 
   if (!hydrated || state === "loading" || state === "idle") {
     return (
@@ -166,7 +172,7 @@ export function OrderTracker() {
     return (
       <EmptyState
         title="No recent order"
-        description="Once you place an order it'll appear here so you can track it live."
+        description="Once you place an order it'll appear here so you can follow its status live."
       />
     );
   }
@@ -213,16 +219,14 @@ export function OrderTracker() {
         <Separator className="my-6" />
 
         {isCancelled ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-red-50 px-4 py-8 text-center">
-            <XCircle className="size-8 text-red-600" />
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-8 text-center">
+            <XCircle className="size-8 text-danger" />
             <p className="font-heading text-lg font-semibold text-foreground">
               Order cancelled
             </p>
-            {order.cancellationReason && (
-              <p className="max-w-sm text-sm text-muted-foreground">
-                {order.cancellationReason}
-              </p>
-            )}
+            <p className="max-w-sm text-sm text-muted-foreground">
+              {order.cancellationReason || "No reason was provided by the bakery."}
+            </p>
           </div>
         ) : (
           <Timeline current={order.status} />
@@ -265,11 +269,9 @@ export function OrderTracker() {
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Payment</dt>
               <dd className="font-medium text-foreground">
-                {order.paymentMethod === "COD"
-                  ? "Cash on delivery"
-                  : order.paymentVerified
-                    ? "Online · Verified"
-                    : "Online · Awaiting verification"}
+                {order.paymentVerified
+                  ? "Online · Verified"
+                  : "Online · Awaiting verification"}
               </dd>
             </div>
             <div className="mt-1 flex items-baseline justify-between border-t border-border pt-3">
