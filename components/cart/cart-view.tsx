@@ -58,9 +58,12 @@ export function CartView() {
         <ul className="divide-y divide-border px-3">
           {lines.map((line) => (
             <CartItem
-              key={line.product.id}
+              key={`${line.product.id}:${line.variant?.id ?? "base"}`}
               product={line.product}
+              variant={line.variant}
               quantity={line.quantity}
+              unitPrice={line.unitPrice}
+              note={line.note}
             />
           ))}
         </ul>
