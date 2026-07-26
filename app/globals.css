@@ -25,6 +25,7 @@
   --color-primary-foreground: #f8f5f2; /* text on chocolate */
   --color-accent-foreground: #3a2318; /* text on caramel */
   --color-card: #ffffff;
+  --color-header: #f2e9e2; /* navbar surface — requested exact tone */
   --color-muted: #f1e9e1; /* subtle warm surface */
   --color-muted-foreground: #8a7969; /* secondary text / taupe */
   --color-border: #e8dfd5; /* soft warm hairline */
@@ -50,6 +51,9 @@
 /* -------------------------------------------------------------------------
  * Base layer
  * ---------------------------------------------------------------------- */
+ html, body {
+  overflow-anchor: none;
+}
 @layer base {
   * {
     border-color: var(--color-border);

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronRight, MapPin, Phone, ShoppingBag } from "lucide-react";
 import { Container } from "@/components/common/container";
 import { Button } from "@/components/ui/button";
@@ -39,10 +40,15 @@ export function Navbar() {
   const [scrolled, setScrolled] = React.useState(false);
   const hydrated = useHydrated();
   const count = useCartCount();
+  const pathname = usePathname();
   const savedArea = useLocationStore((s) => s.area);
   const savedLabel = useLocationStore((s) => s.label);
   const openLocationPicker = useLocationStore((s) => s.openPicker);
   const locationLabel = hydrated ? savedLabel || savedArea || CONTACT.city : CONTACT.city;
+
+  // Hide the cart icon on /cart and /checkout — you're already looking at
+  // (or finishing) the cart there, so the icon is redundant on those pages.
+  const hideCartIcon = pathname === "/cart" || pathname.startsWith("/checkout");
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -56,8 +62,8 @@ export function Navbar() {
       className={cn(
         "relative z-40 w-full border-b transition-all duration-300 ease-lux",
         scrolled
-          ? "border-border bg-muted/95 shadow-soft backdrop-blur-md"
-          : "border-transparent bg-muted/80 backdrop-blur-sm",
+          ? "border-border bg-[#F2E9E2]/95 shadow-soft backdrop-blur-md"
+          : "border-transparent bg-[#F2E9E2]/80 backdrop-blur-sm",
       )}
     >
       <Container className="relative flex h-16 items-center gap-3 md:h-20 lg:h-24">
@@ -76,8 +82,8 @@ export function Navbar() {
             <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
           </button>
 
-          <a
-            href={CONTACT.phoneHref}
+          
+          <a  href={CONTACT.phoneHref}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground shadow-soft transition-colors hover:border-accent"
           >
             <Phone className="size-4 shrink-0 text-accent" />
@@ -114,15 +120,15 @@ export function Navbar() {
           >
             <MapPin className="size-5" />
           </button>
-          <a
-            href={CONTACT.phoneHref}
+          
+          <a href={CONTACT.phoneHref}
             aria-label="Call us"
             className="inline-flex size-10 items-center justify-center rounded-full text-primary transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:hidden"
           >
             <Phone className="size-5" />
           </a>
 
-          <CartLink count={count} hydrated={hydrated} />
+          {!hideCartIcon && <CartLink count={count} hydrated={hydrated} />}
 
           <Button asChild size="sm" className="max-md:px-3">
             <Link href="/pre-order">Pre Order</Link>
