@@ -73,7 +73,7 @@ export function LocationGate() {
     return () => {
       document.body.style.overflow = previous;
     };
-  }, [open]); 
+  }, [open]);   
  
   const statusText: Record<DetectStatus, string> = {
     idle: "Choose your area so we can confirm delivery.",
