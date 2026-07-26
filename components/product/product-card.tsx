@@ -1,15 +1,20 @@
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { ProductCardActions } from "@/components/product/product-card-actions";
+import { ProductCardCta } from "@/components/product/product-card-cta";
+import { getStartingPrice } from "@/data/products";
 import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/types";
 
 /**
  * Product card shell (Server Component). Static presentation only; the
- * interactive add-to-cart controls are a nested Client Component.
+ * interactive add-to-cart controls (or variant-select modal trigger) are a
+ * nested Client Component.
  * Compact and premium at 2-up on mobile through 4-up on desktop.
  */
 export function ProductCard({ product }: { product: Product }) {
+  const hasVariants = Boolean(product.variants && product.variants.length > 0);
+  const price = getStartingPrice(product);
+
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 ease-lux hover:-translate-y-1 hover:shadow-card">
       <div className="relative aspect-square overflow-hidden bg-muted">
@@ -46,9 +51,10 @@ export function ProductCard({ product }: { product: Product }) {
 
         <div className="mt-auto flex flex-col gap-2 pt-1">
           <span className="font-heading text-base font-semibold text-primary sm:text-lg">
-            {formatPrice(product.price)}
+            {hasVariants && <span className="mr-1 text-xs font-medium text-muted-foreground">From</span>}
+            {formatPrice(price)}
           </span>
-          <ProductCardActions product={product} />
+          <ProductCardCta product={product} />
         </div>
       </div>
     </article>
