@@ -62,8 +62,8 @@ export function Navbar() {
       className={cn(
         "relative z-40 w-full border-b transition-all duration-300 ease-lux",
         scrolled
-          ? "border-border bg-[#F2E9E2]/95 shadow-soft backdrop-blur-md"
-          : "border-transparent bg-[#F2E9E2]/80 backdrop-blur-sm",
+          ? "border-border bg-header/95 shadow-soft backdrop-blur-md"
+          : "border-transparent bg-header/80 backdrop-blur-sm",
       )}
     >
       <Container className="relative flex h-16 items-center gap-3 md:h-20 lg:h-24">
