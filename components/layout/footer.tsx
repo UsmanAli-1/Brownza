@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { Container } from "@/components/common/container";
 import { Logo } from "@/components/common/logo";
@@ -7,12 +8,14 @@ import { siteConfig } from "@/config/site";
 import { CONTACT, NAV_LINKS } from "@/lib/constants";
 import { categories } from "@/data/categories";
 
+const TECHMORPH_URL = "https://techmorphinnovation.site";
+
 export function Footer() {
   const year = new Date().getFullYear();
 
   return (
     <footer className="bg-cocoa-gradient text-primary-foreground">
-      <Container className="py-14 md:py-16">
+      <Container className="pt-10 pb-4  ">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
           {/* Brand */}
           <div className="flex flex-col gap-5">
@@ -116,26 +119,34 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-primary-foreground/10 pt-6 text-xs text-primary-foreground/60 sm:flex-row">
-          <p>
-            © {year} {siteConfig.name}. All rights reserved.
-          </p>
-          <p>Handcrafted daily · Freshly baked to order.</p>
-        </div>
-
-        {/* Development credit — logo slot left blank for Techmorph's mark;
-            update the link once the real Techmorph URL is available. */}
-        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-primary-foreground/50">
-          <span
-            aria-hidden
-            className="size-5 shrink-0 rounded-full bg-primary-foreground/10"
-          />
-          <a
-            href={siteConfig.url}
-            className="transition-colors hover:text-accent"
-          >
-            Powered by Techmorph Innovation
-          </a>
+        {/*
+          Bottom credit line — matches the reference layout: a single row
+          with the copyright/year (auto-updates via `new Date().getFullYear()`,
+          so it never needs a manual edit again) and the Techmorph Innovation
+          logo + link, with no Brownza branding on this specific line (the
+          brand name lives above, in the main footer grid).
+        */}
+        <div className="mt-6 flex flex-col items-center justify-center gap-2 border-t border-primary-foreground/10 pt-4 text-xs text-primary-foreground/60 sm:flex-row">
+          <p>© {year} All rights reserved.</p>
+          <span className="hidden sm:inline">·</span>
+          <span className="flex items-center gap-2">
+            Powered by
+            <a
+              href={TECHMORPH_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Techmorph Innovation"
+              className="inline-flex transition-opacity hover:opacity-80"
+            >
+             <Image
+                src="/company_logo/tI-logo.png"
+                alt="Techmorph Innovation"
+                width={160}
+                height={48}
+                className="h-8 w-auto shrink-0 object-contain sm:h-9"
+              />
+            </a>
+          </span>
         </div>
       </Container>
     </footer>
