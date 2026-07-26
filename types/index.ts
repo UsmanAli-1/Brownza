@@ -77,8 +77,6 @@ export interface CartTotals {
   itemCount: number;
 }
 
-export type PaymentMethod = "cod" | "online";
-
 export const ORDER_STATUSES = [
   "pending",
   "accepted",
@@ -90,15 +88,3 @@ export const ORDER_STATUSES = [
 ] as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
-
-/** Snapshot of a placed order, shown on the success page. */
-export interface PlacedOrder {
-  id: string;
-  customerName: string;
-  phone: string;
-  deliveryArea: string;
-  paymentMethod: PaymentMethod;
-  lines: DetailedCartLine[];
-  totals: CartTotals;
-  status: OrderStatus;
-}
