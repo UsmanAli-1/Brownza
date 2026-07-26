@@ -18,6 +18,11 @@ const OPTIONS = [
 export function CategoryFilter() {
   const [active, setActive] = React.useState<string>("favourites");
   const buttonRefs = React.useRef(new Map<string, HTMLButtonElement>());
+  // Skip the very first auto-center pass — it was firing scrollIntoView on
+  // mount (active starts as "favourites"), which could nudge the page's
+  // scroll position right after load. Only user-driven / observed changes
+  // after the initial render should trigger the centering scroll.
+  const isFirstRun = React.useRef(true);
 
   React.useEffect(() => {
     const sections = OPTIONS.map((o) => document.getElementById(o.slug)).filter(
@@ -42,6 +47,10 @@ export function CategoryFilter() {
   }, []);
 
   React.useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
     buttonRefs.current.get(active)?.scrollIntoView({
       behavior: "smooth",
       inline: "center",

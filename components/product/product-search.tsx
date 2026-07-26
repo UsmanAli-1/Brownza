@@ -12,6 +12,10 @@ import { useMenuSearchStore } from "@/lib/menu-search-store";
  * submitting (button click or Enter) commits the query that actually
  * filters the sections.
  *
+ * Exception: clearing the field back to empty commits immediately (rather
+ * than waiting for Enter) so the full menu reliably comes back the moment
+ * the box is emptied — matching what people expect from a search box.
+ *
  * One pill: icon + input + a circular submit button, all inside the same
  * rounded container. The "grow on focus" scale is applied to that outer
  * container (not the input alone) so the icon/button — its siblings —
@@ -21,6 +25,15 @@ export function ProductSearch() {
   const query = useMenuSearchStore((s) => s.query);
   const setQuery = useMenuSearchStore((s) => s.setQuery);
   const [value, setValue] = React.useState(query);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const next = e.target.value;
+    setValue(next);
+    if (next.trim() === "") {
+      // Commit immediately on clear so results reset without needing Enter.
+      setQuery("");
+    }
+  };
 
   return (
     <form
@@ -35,7 +48,7 @@ export function ProductSearch() {
         <input
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={handleChange}
           placeholder="Search the menu…"
           aria-label="Search the menu"
           className="w-full rounded-full border border-border bg-card py-3.5 pl-12 pr-16 text-sm text-foreground shadow-soft outline-none placeholder:text-muted-foreground focus:border-primary focus:shadow-card sm:py-4 sm:text-base"

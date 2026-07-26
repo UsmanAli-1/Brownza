@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Container } from "@/components/common/container";
 import { MenuHero } from "@/components/menu/menu-hero";
-import { PopularFavorites } from "@/components/menu/popular-favorites";
+import { ScrollToTopOnLoad } from "@/components/menu/scroll-to-top-on-load";
 import { CategoryFilter } from "@/components/product/category-filter";
 import { ProductSearch } from "@/components/product/product-search";
 import { MenuContent } from "@/components/product/menu-content";
-import { getProductsByCategory } from "@/data/products";
+import { getProductsByCategory, getFeaturedProducts } from "@/data/products";
 import { categories } from "@/data/categories";
 import type { Product } from "@/types";
 
@@ -24,9 +24,11 @@ export default function ProductsPage() {
     },
     {},
   );
+  const featuredProducts = getFeaturedProducts(4);
 
   return (
     <>
+      <ScrollToTopOnLoad />
       <MenuHero />
 
       <div className="sticky top-0 z-30 border-b border-border bg-muted/95 py-3 backdrop-blur-sm">
@@ -41,11 +43,13 @@ export default function ProductsPage() {
         </Container>
       </div>
 
-      <PopularFavorites />
-
-      <section className="border-t border-border bg-muted/30 py-14 md:py-20">
+      <section className="border-t border-border bg-muted/30 py-4 md:py-10">
         <Container>
-          <MenuContent categories={categories} productsByCategory={productsByCategory} />
+          <MenuContent
+            categories={categories}
+            productsByCategory={productsByCategory}
+            featuredProducts={featuredProducts}
+          />
         </Container>
       </section>
     </>
