@@ -1,19 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Banknote, CreditCard, ImageUp, Loader2, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CreditCard, ImageUp, Loader2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BankDetails } from "@/components/checkout/bank-details";
 import { ScreenshotUpload } from "@/components/checkout/screenshot-upload";
-import { cn } from "@/lib/utils";
 import { detectDeliveryArea } from "@/lib/geolocation";
 import { DEFAULT_DELIVERY_AREA, DELIVERY_AREAS } from "@/lib/constants";
 import {
@@ -21,6 +18,12 @@ import {
   checkoutSchema,
   type CheckoutFormValues,
 } from "@/lib/validations/checkout";
+
+/**
+ * Shared id linking the external "Place order" button (rendered by
+ * CheckoutView, positioned after the order totals) back to this <form>.
+ */
+export const CHECKOUT_FORM_ID = "checkout-form";
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -53,19 +56,29 @@ interface CheckoutFormProps {
     values: CheckoutFormValues,
     screenshot: File | null,
   ) => Promise<void>;
+  /**
+   * Reports submitting state up to CheckoutView so the external button
+   * (rendered outside this component) can show its loading state too.
+   */
+  onSubmittingChange?: (submitting: boolean) => void;
 }
 
-export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
+export function CheckoutForm({
+  initialArea,
+  onPlaceOrder,
+  onSubmittingChange,
+}: CheckoutFormProps) {
   const {
     register,
     handleSubmit,
-    control,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       ...checkoutDefaultValues,
+      // Cash on delivery is no longer offered — every order is online-only.
+      paymentMethod: "online",
       deliveryArea:
         (initialArea as CheckoutFormValues["deliveryArea"]) ??
         DEFAULT_DELIVERY_AREA,
@@ -78,19 +91,19 @@ export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
   const [screenshotError, setScreenshotError] = React.useState<string | null>(
     null,
   );
-  const paymentMethod = useWatch({ control, name: "paymentMethod" });
+  React.useEffect(() => {
+    onSubmittingChange?.(isSubmitting);
+  }, [isSubmitting, onSubmittingChange]);
 
-  // Online payment requires a screenshot before the order can be placed.
   const submit = handleSubmit(async (values) => {
-    if (values.paymentMethod === "online" && !screenshot) {
+    if (!screenshot) {
       setScreenshotError("Please upload your payment screenshot to continue.");
-      toast.error("Payment screenshot is required for online payment.");
+      toast.error("Payment screenshot is required.");
       return;
     }
     await onPlaceOrder(values, screenshot);
   });
 
-  // Detect the delivery area via geolocation + reverse geocoding.
   const handleLocation = async () => {
     setLocating(true);
     try {
@@ -110,7 +123,9 @@ export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
   };
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-6">
+    <form id={CHECKOUT_FORM_ID} onSubmit={submit} noValidate className="flex flex-col gap-6">
+      <input type="hidden" {...register("paymentMethod")} value="online" />
+
       <CardSection title="Delivery details">
         {/* Full name */}
         <div className="flex flex-col gap-1.5">
@@ -240,110 +255,43 @@ export function CheckoutForm({ initialArea, onPlaceOrder }: CheckoutFormProps) {
       </CardSection>
 
       <CardSection title="Payment method">
-        <Controller
-          control={control}
-          name="paymentMethod"
-          render={({ field }) => (
-            <RadioGroup
-              value={field.value}
-              onValueChange={(v) => {
-                field.onChange(v);
-                if (v !== "online") setScreenshotError(null);
+        {/* Cash on delivery removed — every order is prepaid via bank
+            transfer / wallet, so this is now informational rather than a
+            choice. paymentMethod is always "online" (set via the hidden
+            input above and the form's default value). */}
+        <div className="flex items-start gap-3 rounded-2xl border border-accent bg-accent-soft/40 p-4">
+          <CreditCard className="mt-0.5 size-4 shrink-0 text-secondary" />
+          <span className="flex flex-col gap-0.5">
+            <span className="font-medium text-foreground">Online payment</span>
+            <span className="text-xs text-muted-foreground">
+              Pay via bank transfer or wallet — cash on delivery isn&apos;t
+              available.
+            </span>
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <BankDetails />
+          <div className="flex flex-col gap-2">
+            <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <ImageUp className="size-4 text-secondary" />
+              Upload payment screenshot <span className="text-danger">*</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Transfer the total to the account above, then upload your payment
+              proof. Your order stays Pending until we verify it.
+            </p>
+            <ScreenshotUpload
+              value={screenshot}
+              onChange={(file) => {
+                setScreenshot(file);
+                if (file) setScreenshotError(null);
               }}
-              className="grid gap-3 sm:grid-cols-2"
-            >
-              {(
-                [
-                  {
-                    value: "cod",
-                    icon: Banknote,
-                    title: "Cash on delivery",
-                    desc: "Pay in cash when your order arrives.",
-                  },
-                  {
-                    value: "online",
-                    icon: CreditCard,
-                    title: "Online payment",
-                    desc: "Pay via bank transfer or wallet.",
-                  },
-                ] as const
-              ).map((opt) => {
-                const selected = field.value === opt.value;
-                const Icon = opt.icon;
-                return (
-                  <label
-                    key={opt.value}
-                    htmlFor={`pay-${opt.value}`}
-                    className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-colors",
-                      selected
-                        ? "border-accent bg-accent-soft/40"
-                        : "border-border bg-card hover:border-accent/50",
-                    )}
-                  >
-                    <RadioGroupItem
-                      value={opt.value}
-                      id={`pay-${opt.value}`}
-                      className="mt-0.5"
-                    />
-                    <span className="flex flex-col gap-0.5">
-                      <span className="flex items-center gap-2 font-medium text-foreground">
-                        <Icon className="size-4 text-secondary" />
-                        {opt.title}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {opt.desc}
-                      </span>
-                    </span>
-                  </label>
-                );
-              })}
-            </RadioGroup>
-          )}
-        />
-
-        {/* Online payment: bank details + required screenshot upload */}
-        {paymentMethod === "online" && (
-          <div className="flex flex-col gap-4">
-            <BankDetails />
-            <div className="flex flex-col gap-2">
-              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <ImageUp className="size-4 text-secondary" />
-                Upload payment screenshot <span className="text-danger">*</span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Transfer the total to the account above, then upload your payment
-                proof. Your order stays Pending until we verify it.
-              </p>
-              <ScreenshotUpload
-                value={screenshot}
-                onChange={(file) => {
-                  setScreenshot(file);
-                  if (file) setScreenshotError(null);
-                }}
-                error={screenshotError ?? undefined}
-              />
-            </div>
+              error={screenshotError ?? undefined}
+            />
           </div>
-        )}
+        </div>
       </CardSection>
-
-      <div className="flex flex-col gap-3">
-        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Loader2 className="animate-spin" />
-              Placing order…
-            </>
-          ) : (
-            "Place order"
-          )}
-        </Button>
-        <p className="text-center text-xs text-muted-foreground">
-          By placing this order you agree to be contacted to confirm your
-          delivery.
-        </p>
-      </div>
     </form>
   );
 }

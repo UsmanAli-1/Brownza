@@ -4,6 +4,13 @@ import { DEFAULT_DELIVERY_AREA, DELIVERY_AREAS } from "@/lib/constants";
 /**
  * Checkout form schema (Zod v4). Shared contract for the form and any future
  * server action / API route.
+ *
+ * paymentMethod keeps the "cod" | "online" union even though COD isn't
+ * offered anymore — narrowing it to a single-value enum would require
+ * touching lib/models/order.ts, lib/validations/order.ts and types/order.ts
+ * too (they all reference the same COD/ONLINE shape), which is a bigger,
+ * separate change. Functionally harmless to leave as-is: the form always
+ * submits "online" now.
  */
 export const checkoutSchema = z.object({
   fullName: z
@@ -40,5 +47,5 @@ export const checkoutDefaultValues: CheckoutFormValues = {
   deliveryArea: DEFAULT_DELIVERY_AREA,
   address: "",
   notes: "",
-  paymentMethod: "cod",
+  paymentMethod: "online",
 };

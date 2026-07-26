@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckoutForm } from "@/components/checkout/checkout-form";
-import { OrderSuccess } from "@/components/checkout/order-success";
+import { Loader2 } from "lucide-react";
+import { CheckoutForm, CHECKOUT_FORM_ID } from "@/components/checkout/checkout-form";
 import { OrderSummary } from "@/components/cart/order-summary";
 import { EmptyCart } from "@/components/cart/empty-cart";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCartStore } from "@/lib/cart-store";
 import { useDetailedCart } from "@/lib/use-cart";
@@ -15,7 +17,6 @@ import { saveLastOrder } from "@/lib/last-order";
 import { DEFAULT_DELIVERY_AREA } from "@/lib/constants";
 import { formatPrice } from "@/lib/utils";
 import type { CheckoutFormValues } from "@/lib/validations/checkout";
-import type { PlacedOrder } from "@/types";
 import type { CreateOrderInput, OrderRecord } from "@/types/order";
 
 function CheckoutSkeleton() {
@@ -32,10 +33,15 @@ function CheckoutSkeleton() {
 
 export function CheckoutView() {
   const hydrated = useHydrated();
+  const router = useRouter();
   const { lines, totals, isEmpty } = useDetailedCart();
   const clear = useCartStore((s) => s.clear);
   const savedArea = useLocationStore((s) => s.area);
-  const [placed, setPlaced] = React.useState<PlacedOrder | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
+  // Set once a real network request is in flight — used to keep showing the
+  // form (rather than snapping to EmptyCart) during the brief instant after
+  // `clear()` runs but before the redirect to /track completes.
+  const [redirecting, setRedirecting] = React.useState(false);
 
   const handlePlaceOrder = async (
     values: CheckoutFormValues,
@@ -82,9 +88,9 @@ export function CheckoutView() {
         },
         items: lines.map((l) => ({
           productId: l.product.id,
-          productName: l.product.name,
+          productName: l.variant ? `${l.product.name} — ${l.variant.label}` : l.product.name,
           quantity: l.quantity,
-          unitPrice: l.product.price,
+          unitPrice: l.unitPrice,
         })),
         payment,
         subtotal: totals.subtotal,
@@ -107,25 +113,17 @@ export function CheckoutView() {
       }
       const { order } = (await res.json()) as { order: OrderRecord };
 
-      // Persist for the tracking page (survives refresh).
+      // Persist for /track — this is what makes the status page survive a
+      // refresh: it's read from localStorage + refetched from Mongo, not
+      // held in memory.
       saveLastOrder({ id: order._id, orderNumber: order.orderNumber });
 
-      // 3) Build the success snapshot from the created order + local lines.
-      const placedOrder: PlacedOrder = {
-        id: order.orderNumber,
-        customerName: order.customer.name,
-        phone: order.customer.phone,
-        deliveryArea: order.delivery.city,
-        paymentMethod: values.paymentMethod,
-        lines,
-        totals,
-        status: order.status,
-      };
+      setRedirecting(true);
       clear();
-      setPlaced(placedOrder);
       toast.success("Order received!", {
         description: `Reference ${order.orderNumber}`,
       });
+      router.push("/track");
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -136,8 +134,7 @@ export function CheckoutView() {
   };
 
   if (!hydrated) return <CheckoutSkeleton />;
-  if (placed) return <OrderSuccess order={placed} />;
-  if (isEmpty) {
+  if (isEmpty && !redirecting) {
     return (
       <EmptyCart
         title="Your cart is empty"
@@ -152,6 +149,7 @@ export function CheckoutView() {
       <CheckoutForm
         initialArea={savedArea ?? DEFAULT_DELIVERY_AREA}
         onPlaceOrder={handlePlaceOrder}
+        onSubmittingChange={setSubmitting}
       />
 
       <div className="flex flex-col gap-4 lg:sticky lg:top-24">
@@ -162,15 +160,22 @@ export function CheckoutView() {
           <ul className="mt-4 flex flex-col gap-3">
             {lines.map((line) => (
               <li
-                key={line.product.id}
+                key={`${line.product.id}:${line.variant?.id ?? "base"}`}
                 className="flex items-center justify-between gap-3 text-sm"
               >
                 <span className="flex min-w-0 items-center gap-2.5">
                   <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
                     {line.quantity}
                   </span>
-                  <span className="truncate text-foreground">
-                    {line.product.name}
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate text-foreground">
+                      {line.product.name}
+                    </span>
+                    {line.variant && (
+                      <span className="text-xs text-muted-foreground">
+                        {line.variant.label}
+                      </span>
+                    )}
                   </span>
                 </span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">
@@ -182,6 +187,29 @@ export function CheckoutView() {
         </div>
 
         <OrderSummary totals={totals} title="Payable" />
+
+        <div className="flex flex-col gap-3">
+          <Button
+            type="submit"
+            form={CHECKOUT_FORM_ID}
+            size="lg"
+            className="w-full"
+            disabled={submitting}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Placing order…
+              </>
+            ) : (
+              "Place order"
+            )}
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            By placing this order you agree to be contacted to confirm your
+            delivery.
+          </p>
+        </div>
       </div>
     </div>
   );
