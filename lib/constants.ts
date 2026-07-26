@@ -23,15 +23,13 @@ function formatLocal(local: string): string {
 }
 
 // ---- Commerce (env-driven) ----
-/** Flat delivery charge (PKR). Source of truth: NEXT_PUBLIC_DELIVERY_CHARGE. */
+/**
+ * Flat delivery charge (PKR), always applied — Brownza does not offer free
+ * delivery. Source of truth: NEXT_PUBLIC_DELIVERY_CHARGE.
+ */
 export const DELIVERY_CHARGE = envNumber(
   process.env.NEXT_PUBLIC_DELIVERY_CHARGE,
   250,
-);
-/** Subtotal (PKR) at/above which delivery is free. */
-export const FREE_DELIVERY_THRESHOLD = envNumber(
-  process.env.NEXT_PUBLIC_FREE_DELIVERY_THRESHOLD,
-  2500,
 );
 /** Max quantity per line item (guards the quantity stepper). */
 export const MAX_QUANTITY_PER_ITEM = 20;

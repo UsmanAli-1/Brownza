@@ -6,73 +6,93 @@ import { CART_STORAGE_KEY, MAX_QUANTITY_PER_ITEM } from "@/lib/constants";
 /**
  * Global cart store.
  *
- * Stores only `{ productId, quantity }` line items — never full product
+ * Stores `{ productId, variantId?, quantity, note? }` — never full product
  * snapshots — so persisted state stays small and prices are always resolved
- * live from the catalogue. This mirrors how a real order line would reference
- * a product id in a backend, keeping the shape swap-ready.
+ * live from the catalogue. A line is uniquely identified by
+ * `productId + variantId` (two different variants of the same product are
+ * separate lines; a variant-less product has at most one line).
  */
 interface CartState {
   items: CartLine[];
-  addItem: (productId: string, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  setQuantity: (productId: string, quantity: number) => void;
-  increment: (productId: string) => void;
-  decrement: (productId: string) => void;
+  addItem: (
+    productId: string,
+    quantity?: number,
+    variantId?: string,
+    note?: string,
+  ) => void;
+  removeItem: (productId: string, variantId?: string) => void;
+  setQuantity: (productId: string, quantity: number, variantId?: string) => void;
+  increment: (productId: string, variantId?: string) => void;
+  decrement: (productId: string, variantId?: string) => void;
   clear: () => void;
 }
 
 const clampQty = (q: number): number =>
   Math.max(1, Math.min(MAX_QUANTITY_PER_ITEM, Math.floor(q)));
 
+const sameLine = (
+  line: CartLine,
+  productId: string,
+  variantId?: string,
+): boolean => line.productId === productId && (line.variantId ?? null) === (variantId ?? null);
+
 export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       items: [],
 
-      addItem: (productId, quantity = 1) =>
+      addItem: (productId, quantity = 1, variantId, note) =>
         set((state) => {
-          const existing = state.items.find((i) => i.productId === productId);
+          const existing = state.items.find((i) => sameLine(i, productId, variantId));
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.productId === productId
-                  ? { ...i, quantity: clampQty(i.quantity + quantity) }
+                sameLine(i, productId, variantId)
+                  ? {
+                      ...i,
+                      quantity: clampQty(i.quantity + quantity),
+                      // Newer note wins if one was provided this time.
+                      note: note !== undefined ? note : i.note,
+                    }
                   : i,
               ),
             };
           }
           return {
-            items: [...state.items, { productId, quantity: clampQty(quantity) }],
+            items: [
+              ...state.items,
+              { productId, variantId, quantity: clampQty(quantity), note },
+            ],
           };
         }),
 
-      removeItem: (productId) =>
+      removeItem: (productId, variantId) =>
         set((state) => ({
-          items: state.items.filter((i) => i.productId !== productId),
+          items: state.items.filter((i) => !sameLine(i, productId, variantId)),
         })),
 
-      setQuantity: (productId, quantity) =>
+      setQuantity: (productId, quantity, variantId) =>
         set((state) => ({
           items: state.items.map((i) =>
-            i.productId === productId ? { ...i, quantity: clampQty(quantity) } : i,
+            sameLine(i, productId, variantId) ? { ...i, quantity: clampQty(quantity) } : i,
           ),
         })),
 
-      increment: (productId) =>
+      increment: (productId, variantId) =>
         set((state) => ({
           items: state.items.map((i) =>
-            i.productId === productId
+            sameLine(i, productId, variantId)
               ? { ...i, quantity: clampQty(i.quantity + 1) }
               : i,
           ),
         })),
 
-      decrement: (productId) =>
+      decrement: (productId, variantId) =>
         set((state) => ({
           // Decrement, then drop any line that reaches zero.
           items: state.items
             .map((i) =>
-              i.productId === productId ? { ...i, quantity: i.quantity - 1 } : i,
+              sameLine(i, productId, variantId) ? { ...i, quantity: i.quantity - 1 } : i,
             )
             .filter((i) => i.quantity > 0),
         })),
