@@ -70,7 +70,7 @@ export function LocationGate() {
     if (!open) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => {
+    return () => { 
       document.body.style.overflow = previous;
     };
   }, [open]);   
