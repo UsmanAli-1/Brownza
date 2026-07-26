@@ -47,8 +47,18 @@ export function PreOrderForm() {
   const [submittedName, setSubmittedName] = React.useState<string | null>(null);
 
   const onSubmit = async (values: PreOrderValues) => {
-    // Front-end only for now — wire to email/CRM/DB in a later phase.
-    await new Promise((resolve) => setTimeout(resolve, 900));
+    const res = await fetch("/api/pre-orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      toast.error(err?.error ?? "We couldn't send your request. Please try again.");
+      return;
+    }
+
     setSubmittedName(values.fullName);
     toast.success("Pre-order request sent!", {
       description: "Our team will reach out to confirm the details.",
