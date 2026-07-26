@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { FloatingCartBar } from "@/components/cart/floating-cart-bar";
 
 interface SiteChromeProps {
   navbar: ReactNode;
@@ -43,6 +44,7 @@ export function SiteChrome({
       {footer}
       {floating}
       {locationGate}
+      <FloatingCartBar />
     </>
   );
 }
