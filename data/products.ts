@@ -1,4 +1,4 @@
-import type { CategorySlug, Product } from "@/types";
+import type { CategorySlug, Product, ProductVariant } from "@/types";
 
 /**
  * Static product catalogue — the real Brownza menu (from the menu posters).
@@ -9,12 +9,17 @@ import type { CategorySlug, Product } from "@/types";
  *
  * Badges are assigned intentionally from a fixed vocabulary:
  * Signature · Best Seller · Popular · Fresh · Customer Favorite · Limited.
+ *
+ * PRICING NOTE: products with a `variants` array are sold in fixed
+ * sizes/packs. `price` on those products is only a display fallback and is
+ * never used for cart math — the modal always prices off the selected
+ * variant. Dummy/placeholder prices are marked below; edit only here.
  */
 const PLACEHOLDER_IMAGE = "/images/products/logo.png";
 
 export const products: readonly Product[] = [
-  // ---- Cookies ----
-  {
+  // ---- Cookies (no variants — sold as single jumbo cookies) ----
+ {
     id: "classic-nutella-cookie",
     slug: "classic-nutella-cookie",
     name: "Classic Cookie Filled with Nutella",
@@ -25,7 +30,12 @@ export const products: readonly Product[] = [
     featured: true,
     available: true,
     badge: "Signature",
-    serves: "1 jumbo cookie",
+    serves: "",
+    variants: [
+      { id: "single", label: "1 Piece", price: 450 },
+      { id: "pack-6", label: "Pack of 6", price: 2700 }, // dummy — confirm bulk price
+      { id: "pack-12", label: "Pack of 12", price: 5400 }, // dummy — confirm bulk price
+    ],
   },
   {
     id: "triple-chocolate-nutella-cookie",
@@ -38,10 +48,15 @@ export const products: readonly Product[] = [
     featured: false,
     available: true,
     badge: "Popular",
-    serves: "1 jumbo cookie",
+    serves: "",
+    variants: [
+      { id: "single", label: "1 Piece", price: 450 },
+      { id: "pack-6", label: "Pack of 6", price: 2700 }, // dummy — confirm bulk price
+      { id: "pack-12", label: "Pack of 12", price: 5400 }, // dummy — confirm bulk price
+    ],
   },
 
-  // ---- Brownies ----
+  // ---- Brownies (pack of 6 / pack of 12) ----
   {
     id: "chocolate-fudge-brownie",
     slug: "chocolate-fudge-brownie",
@@ -53,7 +68,11 @@ export const products: readonly Product[] = [
     featured: true,
     available: true,
     badge: "Best Seller",
-    serves: "Box of 6",
+    serves: "Box of 6 or 12",
+    variants: [
+      { id: "pack-6", label: "Pack of 6", price: 1200 },
+      { id: "pack-12", label: "Pack of 12", price: 2400 }, // dummy — confirm price
+    ],
   },
   {
     id: "oreo-brownie",
@@ -66,7 +85,11 @@ export const products: readonly Product[] = [
     featured: true,
     available: true,
     badge: "Popular",
-    serves: "Box of 6",
+    serves: "Box of 6 or 12",
+    variants: [
+      { id: "pack-6", label: "Pack of 6", price: 1300 },
+      { id: "pack-12", label: "Pack of 12", price: 2600 }, // dummy — confirm price
+    ],
   },
   {
     id: "lotus-brownie",
@@ -79,7 +102,11 @@ export const products: readonly Product[] = [
     featured: true,
     available: true,
     badge: "Customer Favorite",
-    serves: "Box of 6",
+    serves: "Box of 6 or 12",
+    variants: [
+      { id: "pack-6", label: "Pack of 6", price: 1400 },
+      { id: "pack-12", label: "Pack of 12", price: 2800 }, // dummy — confirm price
+    ],
   },
   {
     id: "walnut-brownie",
@@ -91,7 +118,11 @@ export const products: readonly Product[] = [
     image: "/images/products/walnut_brownie.png",
     featured: false,
     available: true,
-    serves: "Box of 6",
+    serves: "Box of 6 or 12",
+    variants: [
+      { id: "pack-6", label: "Pack of 6", price: 1300 },
+      { id: "pack-12", label: "Pack of 12", price: 2600 }, // dummy — confirm price
+    ],
   },
   {
     id: "triple-chocolate-brownie",
@@ -103,7 +134,11 @@ export const products: readonly Product[] = [
     image: "/images/products/triple_brownie.png",
     featured: false,
     available: true,
-    serves: "Box of 6",
+    serves: "Box of 6 or 12",
+    variants: [
+      { id: "pack-6", label: "Pack of 6", price: 1300 },
+      { id: "pack-12", label: "Pack of 12", price: 2600 }, // dummy — confirm price
+    ],
   },
   {
     id: "nutella-brownie",
@@ -116,7 +151,11 @@ export const products: readonly Product[] = [
     featured: false,
     available: true,
     badge: "Popular",
-    serves: "Box of 6",
+    serves: "Box of 6 or 12",
+    variants: [
+      { id: "pack-6", label: "Pack of 6", price: 1300 },
+      { id: "pack-12", label: "Pack of 12", price: 2600 }, // dummy — confirm price
+    ],
   },
   {
     id: "brownie-bites",
@@ -129,7 +168,11 @@ export const products: readonly Product[] = [
     featured: false,
     available: true,
     badge: "Fresh",
-    serves: "Box of 12",
+    serves: "Box of 12 or 24",
+    variants: [
+      { id: "pack-12", label: "Pack of 12", price: 1000 },
+      { id: "pack-24", label: "Pack of 24", price: 2000 }, // dummy — confirm price
+    ],
   },
   {
     id: "customize-brownie",
@@ -143,6 +186,8 @@ export const products: readonly Product[] = [
     available: true,
     badge: "Limited",
     serves: "Box of 6",
+    // Intentionally no `variants` — this is a build-your-own item, kept as a
+    // simple add-to-cart for now. Say the word if you want a pack modal here too.
   },
   {
     id: "brownie-slab",
@@ -155,13 +200,14 @@ export const products: readonly Product[] = [
     featured: false,
     available: true,
     serves: "1 large slab",
+    // Unchanged per your instruction — stays a simple single-item add.
   },
 
-  // ---- Dumplings ----
+  // ---- Dumplings (pack of 6 / pack of 12) ----
   {
-    id: "dumplings-6",
-    slug: "dumplings-6",
-    name: "Steamed Dumplings — 6 Pieces",
+    id: "steamed-dumplings",
+    slug: "steamed-dumplings",
+    name: "Steamed Dumplings",
     description: "Hand-folded, juicy dumplings steamed to order with house dip.",
     price: 400,
     category: "dumplings",
@@ -169,24 +215,31 @@ export const products: readonly Product[] = [
     featured: false,
     available: true,
     badge: "Fresh",
-    serves: "6 pieces",
+    serves: "Pack of 6 or 12",
+    variants: [
+      { id: "pack-6", label: "Pack of 6", price: 400 },
+      { id: "pack-12", label: "Pack of 12", price: 800 }, // dummy — confirm price
+    ],
   },
 
-
-  // ---- Lasagna ----
+  // ---- Lasagna (small / medium / large) ----
   {
     id: "lasagna",
     slug: "lasagna",
-    name: "Lasagna ",
+    name: "Lasagna",
     description: "Layered pasta, rich sauce and molten cheese, baked golden.",
     price: 400,
     category: "lasagna",
     image: "/images/products/lasagne_2.png",
     featured: false,
     available: true,
-    serves: "",
+    serves: "Small, medium or large",
+    variants: [
+      { id: "small", label: "Small", price: 400 },
+      { id: "medium", label: "Medium", price: 800 }, // dummy — confirm price
+      { id: "large", label: "Large", price: 1200 }, // dummy — confirm price
+    ],
   },
-
 ] as const;
 
 // ---- Selectors (backend-ready access helpers) ----
@@ -210,4 +263,21 @@ export function getFeaturedProducts(limit?: number): Product[] {
 
 export function getProductsByCategory(category: CategorySlug): Product[] {
   return products.filter((p) => p.category === category);
+}
+
+/** Resolve a specific variant on a product by id. */
+export function getVariant(
+  product: Product,
+  variantId: string | undefined,
+): ProductVariant | undefined {
+  if (!variantId) return undefined;
+  return product.variants?.find((v) => v.id === variantId);
+}
+
+/** The price to display on a card: lowest variant price, or the base price. */
+export function getStartingPrice(product: Product): number {
+  if (product.variants && product.variants.length > 0) {
+    return Math.min(...product.variants.map((v) => v.price));
+  }
+  return product.price;
 }
