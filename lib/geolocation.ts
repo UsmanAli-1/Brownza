@@ -10,17 +10,42 @@ export interface DetectResult {
   label?: string;
 }
 
+/**
+ * Reverse geocoding returns a general place name (e.g. "Gulshan-e-Iqbal"),
+ * never a specific block — so an exact match against DELIVERY_AREAS (which
+ * is now block/phase-level) essentially never happens. Instead we match a
+ * broad neighborhood keyword and fall back to that neighborhood's "Other
+ * block/phase" entry, letting the visitor refine it manually if needed.
+ */
+const AREA_KEYWORDS: { keywords: string[]; fallback: DeliveryArea }[] = [
+  { keywords: ["dha", "defence"], fallback: "DHA – Other phase" },
+  { keywords: ["clifton"], fallback: "Clifton" },
+  { keywords: ["gulshan"], fallback: "Gulshan-e-Iqbal – Other block" },
+  { keywords: ["johar", "gulistan"], fallback: "Johar – Other block" },
+  { keywords: ["north nazimabad"], fallback: "North Nazimabad – Other block" },
+  { keywords: ["nazimabad"], fallback: "Nazimabad – Other block" },
+  { keywords: ["pechs"], fallback: "PECHS – Other block" },
+  { keywords: ["bahadurabad"], fallback: "Bahadurabad" },
+  { keywords: ["malir"], fallback: "Malir" },
+  { keywords: ["scheme 33", "scheme-33"], fallback: "Scheme 33" },
+  { keywords: ["korangi"], fallback: "Korangi" },
+  { keywords: ["saddar"], fallback: "Saddar" },
+];
+
 /** Match a free-text place/suburb name to one of our delivery areas. */
 export function matchArea(text: string | undefined | null): DeliveryArea {
   if (!text) return DEFAULT_DELIVERY_AREA;
   const haystack = text.toLowerCase();
+  // Check "North Nazimabad" before "Nazimabad" since the list order above
+  // already handles that, but exact DELIVERY_AREAS entries (single-word
+  // areas like "Clifton") still get first shot at an exact match.
   for (const area of DELIVERY_AREAS) {
-    if (area === "Other") continue;
+    if (area === "Other" || area.includes("–")) continue;
     if (haystack.includes(area.toLowerCase())) return area;
   }
-  // Common aliases.
-  if (haystack.includes("defence")) return "DHA";
-  if (haystack.includes("gulistan")) return "Johar";
+  for (const { keywords, fallback } of AREA_KEYWORDS) {
+    if (keywords.some((k) => haystack.includes(k))) return fallback;
+  }
   return DEFAULT_DELIVERY_AREA;
 }
 

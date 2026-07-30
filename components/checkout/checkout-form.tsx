@@ -1,18 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { CreditCard, ImageUp, Loader2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { BankDetails } from "@/components/checkout/bank-details";
 import { ScreenshotUpload } from "@/components/checkout/screenshot-upload";
 import { detectDeliveryArea } from "@/lib/geolocation";
-import { DEFAULT_DELIVERY_AREA, DELIVERY_AREAS } from "@/lib/constants";
+import {
+  DEFAULT_DELIVERY_AREA,
+  DELIVERY_AREAS,
+  isValidDeliveryArea,
+} from "@/lib/constants";
 import {
   checkoutDefaultValues,
   checkoutSchema,
@@ -72,6 +76,7 @@ export function CheckoutForm({
     register,
     handleSubmit,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -79,13 +84,17 @@ export function CheckoutForm({
       ...checkoutDefaultValues,
       // Cash on delivery is no longer offered — every order is online-only.
       paymentMethod: "online",
-      deliveryArea:
-        (initialArea as CheckoutFormValues["deliveryArea"]) ??
-        DEFAULT_DELIVERY_AREA,
+      // A stale localStorage value from before DELIVERY_AREAS went
+      // block-level (e.g. "Gulshan") would otherwise look pre-selected here
+      // while failing checkoutSchema's z.enum() at submit time.
+      deliveryArea: isValidDeliveryArea(initialArea ?? null)
+        ? (initialArea as CheckoutFormValues["deliveryArea"])
+        : DEFAULT_DELIVERY_AREA,
     },
     mode: "onTouched",
   });
 
+  const deliveryArea = useWatch({ control, name: "deliveryArea" });
   const [locating, setLocating] = React.useState(false);
   const [screenshot, setScreenshot] = React.useState<File | null>(null);
   const [screenshotError, setScreenshotError] = React.useState<string | null>(
@@ -202,17 +211,19 @@ export function CheckoutForm({
               Use current location
             </button>
           </div>
-          <Select
+          <SearchableSelect
             id="deliveryArea"
             aria-invalid={!!errors.deliveryArea}
-            {...register("deliveryArea")}
-          >
-            {DELIVERY_AREAS.map((area) => (
-              <option key={area} value={area}>
-                {area}
-              </option>
-            ))}
-          </Select>
+            aria-describedby={errors.deliveryArea ? "deliveryArea-error" : undefined}
+            options={DELIVERY_AREAS}
+            value={deliveryArea}
+            onChange={(area) =>
+              setValue("deliveryArea", area as CheckoutFormValues["deliveryArea"], {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
+          />
           <FieldError
             id="deliveryArea-error"
             message={errors.deliveryArea?.message}

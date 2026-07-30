@@ -4,13 +4,14 @@ import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useLocationStore } from "@/lib/location-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { detectDeliveryArea } from "@/lib/geolocation";
 import {
   DEFAULT_DELIVERY_AREA,
   DELIVERY_AREAS,
+  isValidDeliveryArea,
   type DeliveryArea,
 } from "@/lib/constants";
 
@@ -35,7 +36,12 @@ export function LocationGate() {
   const userTouched = React.useRef(false);
   const attempted = React.useRef(false);
 
-  const isFirstVisit = hydrated && savedArea === null;
+  // Treat a saved area that no longer exists in DELIVERY_AREAS (e.g. "Gulshan"
+  // from before the list went block-level) the same as never having chosen
+  // one — otherwise it'd silently pass through to checkout and only fail
+  // there, at z.enum() validation, with no visual cue why.
+  const hasValidSavedArea = isValidDeliveryArea(savedArea);
+  const isFirstVisit = hydrated && !hasValidSavedArea;
   const open = isFirstVisit || (hydrated && pickerOpen);
 
   // Reopening with an existing choice (via the navbar) — start from it.
@@ -44,7 +50,7 @@ export function LocationGate() {
   const [prevPickerOpen, setPrevPickerOpen] = React.useState(pickerOpen);
   if (pickerOpen !== prevPickerOpen) {
     setPrevPickerOpen(pickerOpen);
-    if (pickerOpen && savedArea) {
+    if (pickerOpen && isValidDeliveryArea(savedArea)) {
       setSelected(savedArea);
     }
   }
@@ -138,22 +144,16 @@ export function LocationGate() {
               >
                 Delivery area
               </label>
-              <Select
+              <SearchableSelect
                 id="location-area"
-                autoFocus
+                options={DELIVERY_AREAS}
                 value={selected}
-                onChange={(e) => {
+                onChange={(area) => {
                   userTouched.current = true;
-                  setSelected(e.target.value as DeliveryArea);
+                  setSelected(area as DeliveryArea);
                   setDetectedLabel(null);
                 }}
-              >
-                {DELIVERY_AREAS.map((area) => (
-                  <option key={area} value={area}>
-                    {area}
-                  </option>
-                ))}
-              </Select>
+              />
               <p className="text-xs text-muted-foreground">
                 If your area isn&apos;t listed, simply choose Other or contact us
                 to confirm delivery availability.

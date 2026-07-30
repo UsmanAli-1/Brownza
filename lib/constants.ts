@@ -51,25 +51,79 @@ export const NAV_LINKS: readonly NavLink[] = [
 ] as const;
 
 // ---- Delivery areas (Karachi) ----
+// Block/phase-level detail for the biggest catchment areas, generated from
+// standard public numbering (Gulshan/Johar blocks, DHA phases, etc). This is
+// best-effort — a real resident should sanity-check it against ground truth
+// before relying on it for dispatch; wrong entries are cheap to edit here in
+// one place since delivery.city is stored as free text with no DB constraint.
+function blockRange(area: string, from: number, to: number): string[] {
+  const out: string[] = [];
+  for (let i = from; i <= to; i++) out.push(`${area} – Block ${i}`);
+  return out;
+}
+
+function letterRange(area: string, from: string, to: string): string[] {
+  const out: string[] = [];
+  const start = from.charCodeAt(0);
+  const end = to.charCodeAt(0);
+  for (let c = start; c <= end; c++) {
+    out.push(`${area} – Block ${String.fromCharCode(c)}`);
+  }
+  return out;
+}
+
 export const DELIVERY_AREAS = [
-  "DHA",
+  // DHA — Phase 1 to 8.
+  ...Array.from({ length: 8 }, (_, i) => `DHA – Phase ${i + 1}`),
+  "DHA – Other phase",
+
   "Clifton",
-  "Gulshan",
-  "Johar",
-  "Nazimabad",
-  "North Nazimabad",
-  "PECHS",
+
+  // Gulshan-e-Iqbal — Blocks 1-19, plus Block 13's lettered sub-blocks.
+  ...blockRange("Gulshan-e-Iqbal", 1, 19),
+  "Gulshan-e-Iqbal – Block 13-A",
+  "Gulshan-e-Iqbal – Block 13-B",
+  "Gulshan-e-Iqbal – Block 13-C",
+  "Gulshan-e-Iqbal – Block 13-D",
+  "Gulshan-e-Iqbal – Other block",
+
+  // Gulistan-e-Johar — Blocks 1-20, same numbering scheme as Gulshan.
+  ...blockRange("Johar", 1, 20),
+  "Johar – Other block",
+
+  // Nazimabad — Blocks 1-5.
+  ...blockRange("Nazimabad", 1, 5),
+  "Nazimabad – Other block",
+
+  // North Nazimabad — lettered blocks A-L.
+  ...letterRange("North Nazimabad", "A", "L"),
+  "North Nazimabad – Other block",
+
+  // PECHS — Blocks 1-9.
+  ...blockRange("PECHS", 1, 9),
+  "PECHS – Other block",
+
   "Bahadurabad",
   "Malir",
   "Scheme 33",
   "Korangi",
-  "Defence View",
   "Saddar",
   "Other",
 ] as const;
 
 export type DeliveryArea = (typeof DELIVERY_AREAS)[number];
 export const DEFAULT_DELIVERY_AREA: DeliveryArea = "Other";
+
+/**
+ * Guards against a stale area from localStorage (saved before DELIVERY_AREAS
+ * went from ~14 broad names to ~90 block/phase-level ones) — a returning
+ * visitor's old value like "Gulshan" no longer matches anything here, but
+ * without this check it would look selected in the UI while silently
+ * failing checkoutSchema's z.enum() validation at submit time.
+ */
+export function isValidDeliveryArea(value: string | null): value is DeliveryArea {
+  return value !== null && (DELIVERY_AREAS as readonly string[]).includes(value);
+}
 
 // ---- Business details (env-driven; cloud bakery — Karachi, no address) ----
 const PHONE = process.env.NEXT_PUBLIC_PHONE_NUMBER ?? "03719132611";
