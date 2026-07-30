@@ -19,18 +19,6 @@ function getSecret(): string {
   return secret;
 }
 
-export function verifyAdminCredentials(
-  username: string,
-  password: string,
-): boolean {
-  return (
-    !!process.env.ADMIN_USERNAME &&
-    !!process.env.ADMIN_PASSWORD &&
-    username === process.env.ADMIN_USERNAME &&
-    password === process.env.ADMIN_PASSWORD
-  );
-}
-
 export function signAdminToken(username: string): string {
   const payload: AdminTokenPayload = { role: "admin", sub: username };
   return jwt.sign(payload, getSecret(), { expiresIn: ADMIN_TOKEN_MAX_AGE });

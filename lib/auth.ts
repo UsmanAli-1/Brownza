@@ -3,6 +3,7 @@ import { ADMIN_COOKIE, verifyAdminToken } from "@/lib/admin-token";
 import type { AdminTokenPayload } from "@/lib/admin-token";
 
 export * from "@/lib/admin-token";
+export { verifyAdminCredentials, changeAdminPassword } from "@/lib/services/admin-user-service";
 
 /** Read + verify the admin session from cookies (server components / routes). */
 export async function getAdminSession(): Promise<AdminTokenPayload | null> {
