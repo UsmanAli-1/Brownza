@@ -6,6 +6,7 @@ import {
 } from "@/lib/services/pre-order-service";
 import { BackButton } from "@/components/common/back-button";
 import { DeletePreOrderButton } from "@/components/admin/delete-preorder-button";
+import { MarkReadRefresh } from "@/components/admin/mark-read-refresh";
 
 export const metadata: Metadata = { title: "Pre-order request" };
 export const dynamic = "force-dynamic";
@@ -35,9 +36,10 @@ export default async function PreOrderDetailPage({
   const { id } = await params;
   const preOrder = await getPreOrderById(id);
   if (!preOrder) notFound();
-  // Viewing this page is what clears the unread badge for this one request
-  // — fire-and-forget, doesn't need to block the render.
-  void markPreOrderRead(id);
+  // Viewing this page is what clears the unread badge for this one request.
+  // Awaited (not fire-and-forget) so the write is guaranteed to land before
+  // <MarkReadRefresh> asks the parent layout to recompute the badge count.
+  await markPreOrderRead(id);
 
   const submittedAt = new Date(preOrder.createdAt).toLocaleString("en-PK", {
     dateStyle: "medium",
@@ -50,6 +52,7 @@ export default async function PreOrderDetailPage({
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
+      <MarkReadRefresh />
       <BackButton fallbackHref="/admin/form-data" label="Back to Form Data" />
 
       <div className="rounded-3xl border border-border bg-card shadow-soft">

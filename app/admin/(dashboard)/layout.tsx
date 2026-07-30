@@ -64,7 +64,7 @@ export default async function AdminDashboardLayout({
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-3 pt-20 pb-4 sm:px-5 sm:pt-24 sm:pb-6 md:flex-row md:gap-6">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-3 pt-[4.25rem] pb-4 sm:px-5 sm:pb-6 md:flex-row md:gap-6">
         <AdminNav formDataUnread={formDataUnread} username={session.sub} />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
