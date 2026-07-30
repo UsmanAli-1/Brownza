@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { Order, type OrderDoc } from "@/lib/models/order";
 import { Activity } from "@/lib/models/activity";
+import { getLedger, recordOrderCreated, recordOrderDelivered } from "@/lib/models/stats-ledger";
+import { recordMonthlyDelivered, getMonthlyRevenue } from "@/lib/models/monthly-stats";
+import { nextSequence } from "@/lib/models/counter";
 import { cloudinary } from "@/lib/cloudinary";
 import { emitOrderEvent } from "@/lib/events";
 import { logActivity } from "@/lib/services/activity-service";
@@ -88,9 +91,9 @@ export async function createOrder(
   input: CreateOrderInput,
 ): Promise<OrderRecord> {
   await connectToDatabase();
-  const count = await Order.countDocuments();
+  const seq = await nextSequence("orderNumber");
   const created = await Order.create({
-    orderNumber: `BRZ-${count + 1}`,
+    orderNumber: `BRZ-${seq}`,
     customer: input.customer,
     delivery: input.delivery,
     items: input.items,
@@ -107,13 +110,23 @@ export async function createOrder(
     status: "pending",
   });
   const record = serialize(created.toObject() as unknown as OrderLean);
+
   broadcast(record, "order.created");
-  await logActivity({
+
+  // Neither the ledger increment nor the activity log needs to block the
+  // customer's response — the order is already saved and confirmed by this
+  // point, so both run fire-and-forget instead of adding two more
+  // sequential round-trips to every checkout.
+  void recordOrderCreated(record.total).catch((err) =>
+    console.error("recordOrderCreated failed", err),
+  );
+  void logActivity({
     type: "order.created",
     orderId: record._id,
     orderNumber: record.orderNumber,
     message: `New order ${record.orderNumber} received`,
   });
+
   return record;
 }
 
@@ -139,9 +152,11 @@ export async function updateOrderStatus(
 
   const record = serialize(doc.toObject() as unknown as OrderLean);
 
+  // Broadcasting and logging never need to block the admin's response — the
+  // status change is already saved by this point.
   if (next === "cancelled") {
     broadcast(record, "order.cancelled");
-    await logActivity({
+    void logActivity({
       type: "order.cancelled",
       orderId: record._id,
       orderNumber: record.orderNumber,
@@ -150,8 +165,16 @@ export async function updateOrderStatus(
       }`,
     });
   } else if (next === "delivered") {
+    // Both ledgers record here — "delivered" is terminal, so this revenue
+    // is permanently counted regardless of what happens to the order
+    // document afterward, including deletion. Run together, fire-and-forget.
+    void Promise.all([
+      recordOrderDelivered(record.total),
+      recordMonthlyDelivered(record.total),
+    ]).catch((err) => console.error("delivered ledger update failed", err));
+
     broadcast(record, "order.delivered");
-    await logActivity({
+    void logActivity({
       type: "order.delivered",
       orderId: record._id,
       orderNumber: record.orderNumber,
@@ -159,7 +182,7 @@ export async function updateOrderStatus(
     });
   } else if (next === "accepted") {
     broadcast(record, "order.updated");
-    await logActivity({
+    void logActivity({
       type: "order.accepted",
       orderId: record._id,
       orderNumber: record.orderNumber,
@@ -167,7 +190,7 @@ export async function updateOrderStatus(
     });
   } else {
     broadcast(record, "order.updated");
-    await logActivity({
+    void logActivity({
       type: "status.updated",
       orderId: record._id,
       orderNumber: record.orderNumber,
@@ -189,12 +212,12 @@ export async function verifyOrderPayment(
       "payment.paymentVerified": true,
       "payment.paymentVerifiedAt": new Date(),
     },
-    { new: true },
+    { returnDocument: "after" },
   ).lean<OrderLean>();
   if (!doc) return null;
   const record = serialize(doc);
   broadcast(record, "payment.verified");
-  await logActivity({
+  void logActivity({
     type: "payment.verified",
     orderId: record._id,
     orderNumber: record.orderNumber,
@@ -237,9 +260,7 @@ export interface ListOrdersOptions {
   search?: string;
   page?: number;
   pageSize?: number;
-  /** Only orders created today. */
   todayOnly?: boolean;
-  /** "operational" = active first then completed; "recent" = newest first. */
   sort?: "operational" | "recent";
 }
 
@@ -253,8 +274,6 @@ export async function listOrders(
 
   const result = (await Order.aggregate([
     { $match: match },
-    // "recent": pure newest-first. Otherwise active orders on top, then
-    // delivered, then cancelled (operational view).
     ...(opts.sort === "recent"
       ? [{ $sort: { createdAt: -1 as const } }]
       : [
@@ -279,7 +298,11 @@ export async function listOrders(
         count: [{ $count: "total" }],
       },
     },
-  ])) as { data: OrderLean[]; count: { total: number }[] }[];
+  ])
+    // The "operational" sort's _sortGroup is computed, not indexed, so
+    // large result sets can exceed Mongo's default 100MB in-memory sort
+    // limit — let it spill to disk rather than throwing.
+    .allowDiskUse(true)) as { data: OrderLean[]; count: { total: number }[] }[];
 
   const facet = result[0];
   const total = facet?.count[0]?.total ?? 0;
@@ -290,6 +313,46 @@ export async function listOrders(
     pageSize,
     totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+export interface CustomerExportRow {
+  orderNumber: string;
+  name: string;
+  phone: string;
+  whatsapp: string;
+  email?: string;
+  address: string;
+  city: string;
+  createdAt: string;
+}
+
+const EXPORT_LIMIT = 20_000;
+
+/** Customer contact details only, for the All Orders CSV export — respects the current search/status filter, ignores pagination. */
+export async function listCustomerExport(opts: {
+  status?: OrderStatus;
+  search?: string;
+}): Promise<CustomerExportRow[]> {
+  await connectToDatabase();
+  const filter = buildFilter(opts);
+  const docs = await Order.find(filter)
+    .select(
+      "orderNumber customer.name customer.phone customer.whatsapp customer.email delivery.address delivery.city createdAt",
+    )
+    .sort({ createdAt: -1 })
+    .limit(EXPORT_LIMIT)
+    .lean<OrderLean[]>();
+
+  return docs.map((o) => ({
+    orderNumber: o.orderNumber,
+    name: o.customer.name,
+    phone: o.customer.phone,
+    whatsapp: o.customer.whatsapp,
+    email: o.customer.email,
+    address: o.delivery.address,
+    city: o.delivery.city,
+    createdAt: new Date(o.createdAt).toISOString(),
+  }));
 }
 
 interface TodayFacet {
@@ -304,7 +367,6 @@ export interface TodayStats {
   byStatus: Record<OrderStatus, number>;
 }
 
-/** Operational stats scoped to orders placed today (for the Orders page). */
 export async function getTodayStats(): Promise<TodayStats> {
   await connectToDatabase();
   const start = new Date();
@@ -344,7 +406,6 @@ export async function getOrderById(id: string): Promise<OrderRecord | null> {
   return doc ? serialize(doc) : null;
 }
 
-/** Customer-safe tracking view fetched by Mongo id (non-enumerable). */
 export async function getOrderTrackById(
   id: string,
 ): Promise<OrderTrackView | null> {
@@ -372,12 +433,10 @@ export async function getOrderTrackById(
   };
 }
 
-// ---- Dashboard + analytics (single aggregation each) ----
+// ---- Dashboard + analytics ----
 
 interface DashboardFacet {
   byStatus: { _id: OrderStatus; count: number }[];
-  overall: { _id: null; count: number; sum: number }[];
-  deliveredRevenue: { _id: null; revenue: number }[];
   today: { _id: null; count: number }[];
   todayRevenue: { _id: null; revenue: number }[];
   pendingOnline: { count: number }[];
@@ -388,55 +447,51 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const result = (await Order.aggregate([
-    {
-      $facet: {
-        byStatus: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
-        overall: [
-          { $group: { _id: null, count: { $sum: 1 }, sum: { $sum: "$total" } } },
-        ],
-        deliveredRevenue: [
-          { $match: { status: "delivered" } },
-          { $group: { _id: null, revenue: { $sum: "$total" } } },
-        ],
-        today: [
-          { $match: { createdAt: { $gte: startOfToday } } },
-          { $group: { _id: null, count: { $sum: 1 } } },
-        ],
-        todayRevenue: [
-          { $match: { status: "delivered", createdAt: { $gte: startOfToday } } },
-          { $group: { _id: null, revenue: { $sum: "$total" } } },
-        ],
-        pendingOnline: [
-          {
-            $match: {
-              "payment.method": "ONLINE",
-              "payment.paymentVerified": false,
+  const [ledger, facetResult] = await Promise.all([
+    getLedger(),
+    Order.aggregate([
+      {
+        $facet: {
+          byStatus: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
+          today: [
+            { $match: { createdAt: { $gte: startOfToday } } },
+            { $group: { _id: null, count: { $sum: 1 } } },
+          ],
+          todayRevenue: [
+            { $match: { status: "delivered", createdAt: { $gte: startOfToday } } },
+            { $group: { _id: null, revenue: { $sum: "$total" } } },
+          ],
+          pendingOnline: [
+            {
+              $match: {
+                "payment.method": "ONLINE",
+                "payment.paymentVerified": false,
+              },
             },
-          },
-          { $count: "count" },
-        ],
+            { $count: "count" },
+          ],
+        },
       },
-    },
-  ])) as DashboardFacet[];
+    ]) as Promise<DashboardFacet[]>,
+  ]);
 
-  const facet = result[0];
+  const facet = facetResult[0];
   const byStatus = Object.fromEntries(
     ORDER_STATUSES.map((s) => [s, 0]),
   ) as Record<OrderStatus, number>;
   for (const row of facet.byStatus) byStatus[row._id] = row.count;
 
-  const total = facet.overall[0]?.count ?? 0;
-  const sumAll = facet.overall[0]?.sum ?? 0;
-
   return {
-    total,
+    total: ledger.ordersCreated,
     byStatus,
     todayOrders: facet.today[0]?.count ?? 0,
     todayRevenue: facet.todayRevenue[0]?.revenue ?? 0,
-    totalRevenue: facet.deliveredRevenue[0]?.revenue ?? 0,
+    totalRevenue: ledger.deliveredRevenue,
     pendingOnlinePayments: facet.pendingOnline[0]?.count ?? 0,
-    averageOrderValue: total > 0 ? Math.round(sumAll / total) : 0,
+    averageOrderValue:
+      ledger.ordersCreated > 0
+        ? Math.round(ledger.revenueCreated / ledger.ordersCreated)
+        : 0,
   };
 }
 
@@ -444,10 +499,16 @@ interface AnalyticsFacet {
   topProducts: { _id: string; quantity: number; revenue: number }[];
   thisWeek: { count: number }[];
   thisMonth: { count: number }[];
-  revenueThisMonth: { _id: null; revenue: number }[];
   avgDeliveryFee: { _id: null; avg: number }[];
 }
 
+/**
+ * `revenueThisMonth` now comes from the permanent MonthlyStats ledger
+ * (lib/models/monthly-stats.ts) instead of live-aggregating the Order
+ * collection — that's what makes it survive deleting orders. Order counts
+ * (this week/month) and average delivery fee stay live, since those reflect
+ * the current operational state rather than a historical financial record.
+ */
 export async function getAnalytics(): Promise<AnalyticsData> {
   await connectToDatabase();
   const now = new Date();
@@ -455,41 +516,40 @@ export async function getAnalytics(): Promise<AnalyticsData> {
   startOfWeek.setDate(now.getDate() - 7);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const result = (await Order.aggregate([
-    {
-      $facet: {
-        topProducts: [
-          { $unwind: "$items" },
-          {
-            $group: {
-              _id: "$items.productName",
-              quantity: { $sum: "$items.quantity" },
-              revenue: {
-                $sum: { $multiply: ["$items.quantity", "$items.unitPrice"] },
+  const [revenueThisMonth, result] = await Promise.all([
+    getMonthlyRevenue(),
+    Order.aggregate([
+      {
+        $facet: {
+          topProducts: [
+            { $unwind: "$items" },
+            {
+              $group: {
+                _id: "$items.productName",
+                quantity: { $sum: "$items.quantity" },
+                revenue: {
+                  $sum: { $multiply: ["$items.quantity", "$items.unitPrice"] },
+                },
               },
             },
-          },
-          { $sort: { quantity: -1 } },
-          { $limit: 5 },
-        ],
-        thisWeek: [
-          { $match: { createdAt: { $gte: startOfWeek } } },
-          { $count: "count" },
-        ],
-        thisMonth: [
-          { $match: { createdAt: { $gte: startOfMonth } } },
-          { $count: "count" },
-        ],
-        revenueThisMonth: [
-          { $match: { status: "delivered", createdAt: { $gte: startOfMonth } } },
-          { $group: { _id: null, revenue: { $sum: "$total" } } },
-        ],
-        avgDeliveryFee: [
-          { $group: { _id: null, avg: { $avg: "$deliveryFee" } } },
-        ],
+            { $sort: { quantity: -1 } },
+            { $limit: 5 },
+          ],
+          thisWeek: [
+            { $match: { createdAt: { $gte: startOfWeek } } },
+            { $count: "count" },
+          ],
+          thisMonth: [
+            { $match: { createdAt: { $gte: startOfMonth } } },
+            { $count: "count" },
+          ],
+          avgDeliveryFee: [
+            { $group: { _id: null, avg: { $avg: "$deliveryFee" } } },
+          ],
+        },
       },
-    },
-  ])) as AnalyticsFacet[];
+    ]) as Promise<AnalyticsFacet[]>,
+  ]);
 
   const facet = result[0];
   const topProducts = facet.topProducts.map((p) => ({
@@ -503,14 +563,13 @@ export async function getAnalytics(): Promise<AnalyticsData> {
     mostOrderedProduct: topProducts[0]?.productName ?? null,
     ordersThisWeek: facet.thisWeek[0]?.count ?? 0,
     ordersThisMonth: facet.thisMonth[0]?.count ?? 0,
-    revenueThisMonth: facet.revenueThisMonth[0]?.revenue ?? 0,
+    revenueThisMonth,
     averageDeliveryFee: Math.round(facet.avgDeliveryFee[0]?.avg ?? 0),
   };
 }
 
 // ---- Deletion (Cloudinary + Mongo) ----
 
-/** Delete Cloudinary assets in batches of 100 (delete_resources limit). */
 async function deleteCloudinaryByPublicIds(
   publicIds: string[],
 ): Promise<{ deleted: number; failed: number }> {
@@ -544,7 +603,6 @@ async function collectScreenshotPublicIds(
     .filter((x): x is string => !!x);
 }
 
-/** Delete a single order (and its Cloudinary screenshot + activity). */
 export async function deleteOrder(id: string): Promise<boolean> {
   if (!mongoose.Types.ObjectId.isValid(id)) return false;
   await connectToDatabase();
@@ -563,7 +621,6 @@ export interface DeleteAllOrdersResult {
   deletedScreenshots: number;
 }
 
-/** Delete every order (+ all Cloudinary screenshots + all activity). */
 export async function deleteAllOrders(): Promise<DeleteAllOrdersResult> {
   await connectToDatabase();
   const publicIds = await collectScreenshotPublicIds({});

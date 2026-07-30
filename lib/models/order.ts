@@ -92,6 +92,14 @@ OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ status: 1, createdAt: -1 });
 OrderSchema.index({ "payment.method": 1, "payment.paymentVerified": 1 });
 OrderSchema.index({ "customer.phone": 1 });
+OrderSchema.index({ "customer.name": 1 });
+OrderSchema.index({ "customer.whatsapp": 1 });
+// Note: the admin search's case-insensitive substring regex ($or across the
+// fields above) still can't use these indexes for a seek — only exact/prefix
+// matches can. They help other exact-match query paths; if search itself
+// becomes a bottleneck at scale, switch to a MongoDB text/Atlas Search index
+// (a matching-semantics change, not a drop-in swap) rather than more regex
+// indexes.
 
 // Reuse the compiled model across hot reloads.
 export const Order: Model<OrderDoc> =
