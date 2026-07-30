@@ -163,18 +163,29 @@ export function AdminNav({ formDataUnread = 0, username }: AdminNavProps) {
         </div>
       )}
 
-      {/* Desktop: sticky sidebar column, fills down to the viewport bottom so
-          the profile block anchors there instead of floating right under the
-          links. */}
-      <nav className="sticky top-20 hidden h-[calc(100dvh-6rem)] w-48 flex-col border-r border-border pr-4 md:flex">
-        <div className="flex flex-col gap-1">
-          <NavLinks pathname={pathname} formDataUnread={formDataUnread} />
-        </div>
-        <div className="mt-auto flex flex-col gap-1">
-          <div className="mb-1 border-t border-border" />
-          <ProfileBlock username={username} />
-        </div>
-      </nav>
+      {/* Desktop: fixed sidebar column (not sticky — sticky anchors to this
+          flex row's own box, which reflows and visibly jitters every time
+          admin-realtime triggers a router.refresh()). The outer div mirrors
+          the header/content's own `mx-auto max-w-[1600px]` so the fixed
+          nav's left edge always lines up, at any viewport width, without
+          hardcoding an offset. */}
+      <div
+        className="pointer-events-none fixed inset-x-0 top-24 z-20 mx-auto hidden h-[calc(100dvh-7rem)] max-w-[1600px] px-3 sm:px-5 md:block"
+        aria-hidden={false}
+      >
+        <nav className="pointer-events-auto flex h-full w-48 flex-col border-r border-border pr-4">
+          <div className="flex flex-col gap-1">
+            <NavLinks pathname={pathname} formDataUnread={formDataUnread} />
+          </div>
+          <div className="mt-auto flex flex-col gap-1">
+            <div className="mb-1 border-t border-border" />
+            <ProfileBlock username={username} />
+          </div>
+        </nav>
+      </div>
+      {/* Reserves the sidebar's width in the flex row so main content isn't
+          hidden underneath the fixed nav above. */}
+      <div className="hidden w-48 shrink-0 md:block" aria-hidden />
     </>
   );
 }

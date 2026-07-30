@@ -29,7 +29,7 @@ export default async function AdminDashboardLayout({
   return (
     <div className="min-h-dvh bg-muted/30">
       <AdminRealtime />
-      <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
+      <header className="fixed inset-x-0 top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
         <div className="relative mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-3 sm:px-5">
           <div className="flex items-center gap-3">
             <div className="md:hidden">
@@ -64,7 +64,7 @@ export default async function AdminDashboardLayout({
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-3 py-4 sm:px-5 sm:py-6 md:flex-row md:gap-6">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-3 pt-20 pb-4 sm:px-5 sm:pt-24 sm:pb-6 md:flex-row md:gap-6">
         <AdminNav formDataUnread={formDataUnread} username={session.sub} />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
