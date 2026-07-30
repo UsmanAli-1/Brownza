@@ -14,6 +14,7 @@ import { useDetailedCart } from "@/lib/use-cart";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useLocationStore } from "@/lib/location-store";
 import { saveLastOrder } from "@/lib/last-order";
+import { compressImageForUpload } from "@/lib/compress-image";
 import { DEFAULT_DELIVERY_AREA } from "@/lib/constants";
 import { formatPrice } from "@/lib/utils";
 import type { CheckoutFormValues } from "@/lib/validations/checkout";
@@ -48,14 +49,16 @@ export function CheckoutView() {
     screenshot: File | null,
   ) => {
     try {
-      const payment: CreateOrderInput["payment"] = {
-        method: values.paymentMethod === "online" ? "ONLINE" : "COD",
-      };
+      // Every order is online-payment-only (checkout-form.tsx no longer
+      // offers a payment-method choice — see its own comment on why the
+      // "cod"|"online" union type is still kept, just never set to "cod").
+      const payment: CreateOrderInput["payment"] = { method: "ONLINE" };
 
-      // 1) Upload the payment screenshot to Cloudinary for online payments.
-      if (values.paymentMethod === "online" && screenshot) {
+      // 1) Upload the payment screenshot to Cloudinary.
+      if (screenshot) {
+        const compressed = await compressImageForUpload(screenshot);
         const fd = new FormData();
-        fd.append("file", screenshot);
+        fd.append("file", compressed);
         const uploadRes = await fetch("/api/upload", {
           method: "POST",
           body: fd,
