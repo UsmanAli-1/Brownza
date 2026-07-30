@@ -170,7 +170,7 @@ export function AdminNav({ formDataUnread = 0, username }: AdminNavProps) {
           nav's left edge always lines up, at any viewport width, without
           hardcoding an offset. */}
       <div
-        className="pointer-events-none fixed inset-x-0 top-[4.25rem] z-20 mx-auto hidden h-[calc(100dvh-4.25rem)] max-w-[1600px] px-3 sm:px-5 md:block"
+        className="pointer-events-none fixed inset-x-0 top-[4.75rem] z-20 mx-auto hidden h-[calc(100dvh-4.25rem)] max-w-[1600px] px-3 sm:px-5 md:block"
         aria-hidden={false}
       >
         <nav className="pointer-events-auto flex h-full w-48 flex-col border-r border-border pr-4">
