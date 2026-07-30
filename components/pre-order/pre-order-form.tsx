@@ -26,6 +26,15 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
+/** Earliest selectable moment — 1 hour from now, rounded to the next 30
+ * minutes, formatted for a datetime-local input's `min` attribute. */
+function minDateTimeLocal(): string {
+  const d = new Date(Date.now() + 60 * 60 * 1000);
+  d.setMinutes(Math.ceil(d.getMinutes() / 30) * 30, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function PreOrderForm() {
   const {
     register,
@@ -40,11 +49,13 @@ export function PreOrderForm() {
       email: "",
       orderType: "Pre Order",
       description: "",
+      preferredDateTime: "",
     },
     mode: "onTouched",
   });
 
   const [submittedName, setSubmittedName] = React.useState<string | null>(null);
+  const minDateTime = React.useMemo(() => minDateTimeLocal(), []);
 
   const onSubmit = async (values: PreOrderValues) => {
     const res = await fetch("/api/pre-orders", {
@@ -149,22 +160,44 @@ export function PreOrderForm() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="po-type">
-          Order type <span className="text-danger">*</span>
-        </Label>
-        <Select
-          id="po-type"
-          aria-invalid={!!errors.orderType}
-          {...register("orderType")}
-        >
-          {ORDER_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </Select>
-        <FieldError id="po-type-error" message={errors.orderType?.message} />
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="po-type">
+            Order type <span className="text-danger">*</span>
+          </Label>
+          <Select
+            id="po-type"
+            aria-invalid={!!errors.orderType}
+            {...register("orderType")}
+          >
+            {ORDER_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </Select>
+          <FieldError id="po-type-error" message={errors.orderType?.message} />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="po-datetime">
+            Needed by (date &amp; time) <span className="text-danger">*</span>
+          </Label>
+          <Input
+            id="po-datetime"
+            type="datetime-local"
+            min={minDateTime}
+            aria-invalid={!!errors.preferredDateTime}
+            aria-describedby={
+              errors.preferredDateTime ? "po-datetime-error" : undefined
+            }
+            {...register("preferredDateTime")}
+          />
+          <FieldError
+            id="po-datetime-error"
+            message={errors.preferredDateTime?.message}
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">

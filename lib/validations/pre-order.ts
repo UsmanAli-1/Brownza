@@ -27,6 +27,13 @@ export const preOrderSchema = z.object({
     .trim()
     .min(10, "Please tell us a little more")
     .max(1000, "Description is too long"),
+  /** HTML datetime-local value, e.g. "2026-08-14T15:30". Required — the
+   * customer must tell us when they need this by. */
+  preferredDateTime: z
+    .string()
+    .min(1, "Please choose a date and time")
+    .refine((v) => !Number.isNaN(new Date(v).getTime()), "Enter a valid date and time")
+    .refine((v) => new Date(v).getTime() > Date.now(), "Please choose a time in the future"),
 });
 
 export type PreOrderValues = z.infer<typeof preOrderSchema>;

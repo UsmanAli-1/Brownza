@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createPreOrder } from "@/lib/services/pre-order-service";
+import { getAdminSession } from "@/lib/auth";
+import { createPreOrder, deleteAllPreOrders } from "@/lib/services/pre-order-service";
 import { preOrderSchema } from "@/lib/validations/pre-order";
 
 export const runtime = "nodejs";
@@ -21,10 +22,25 @@ export async function POST(req: Request) {
       email: parsed.data.email || undefined,
       orderType: parsed.data.orderType,
       description: parsed.data.description,
+      preferredDateTime: parsed.data.preferredDateTime,
     });
     return NextResponse.json({ preOrder }, { status: 201 });
   } catch (error) {
     console.error("POST /api/pre-orders", error);
     return NextResponse.json({ error: "Failed to submit pre-order" }, { status: 500 });
+  }
+}
+
+/** Admin only — delete ALL pre-order submissions. */
+export async function DELETE() {
+  if (!(await getAdminSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  try {
+    const result = await deleteAllPreOrders();
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("DELETE /api/pre-orders", error);
+    return NextResponse.json({ error: "Failed to delete pre-orders" }, { status: 500 });
   }
 }
