@@ -54,14 +54,14 @@ export function OrderSearch() {
           e.preventDefault();
           applySearch(value);
         }}
-        className="flex flex-1 items-center gap-2"
+        className="flex items-center gap-2 sm:w-72"
       >
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Search order #, name, phone or WhatsApp"
+            placeholder="Search order #, name, phone"
             className="pl-9 pr-9"
             aria-label="Search orders"
           />
@@ -79,9 +79,14 @@ export function OrderSearch() {
             </button>
           )}
         </div>
-        <Button type="submit" variant="secondary" disabled={pending}>
+        <Button
+          type="submit"
+          variant="secondary"
+          size="icon"
+          disabled={pending}
+          aria-label="Search"
+        >
           {pending ? <Loader2 className="animate-spin" /> : <Search />}
-          Search
         </Button>
       </form>
 

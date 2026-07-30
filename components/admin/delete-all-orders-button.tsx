@@ -40,7 +40,7 @@ export function DeleteAllOrdersButton() {
     <>
       <Button variant="danger" size="sm" onClick={() => setOpen(true)}>
         <Trash2 />
-        Delete all orders
+        <span className="hidden sm:inline">Delete all orders</span>
       </Button>
       <ConfirmDialog
         open={open}
