@@ -83,10 +83,9 @@ export const CONTACT = {
   phoneHref: `tel:${PHONE.replace(/\s/g, "")}`,
   whatsappDisplay: formatLocal(WHATSAPP),
   whatsappHref: `https://wa.me/${toIntl(WHATSAPP)}`,
-  instagramHandle: "@brownza",
-  instagramHref: "https://instagram.com/brownza",
-  // Placeholder — update once the real Brownza Facebook page exists.
-  facebookHref: "https://facebook.com/brownza",
+  instagramHandle: "@brownza_by_ayat_anas",
+  instagramHref: "https://www.instagram.com/brownza_by_ayat_anas?igsh=OHQ2aXZqbmM4MHJn",
+  facebookHref: "https://www.facebook.com/share/1Ha2iSiTHp/",
   emailDisplay: "brownzabyayatanas@gmail.com",
   emailHref: "mailto:brownzabyayatanas@gmail.com",
 } as const;
@@ -107,4 +106,5 @@ export interface SocialLink {
 
 export const SOCIAL_LINKS: readonly SocialLink[] = [
   { label: "Instagram", href: CONTACT.instagramHref },
+  { label: "Facebook", href: CONTACT.facebookHref },
 ] as const;
