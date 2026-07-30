@@ -6,6 +6,16 @@ import { DeleteOrderButton } from "@/components/admin/delete-order-button";
 import { cn, formatPrice } from "@/lib/utils";
 import type { OrderRecord } from "@/types/order";
 
+/** An order counts as "new" if it's still pending and landed within the
+ * last 15 minutes — long enough for an admin to notice it, short enough
+ * that it doesn't linger as "new" all day once it's just sitting pending. */
+const NEW_WINDOW_MS = 15 * 60 * 1000;
+
+function isNew(order: OrderRecord): boolean {
+  if (order.status !== "pending") return false;
+  return Date.now() - new Date(order.createdAt).getTime() < NEW_WINDOW_MS;
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString("en-PK", {
     day: "2-digit",
@@ -72,15 +82,25 @@ export function OrdersTable({
           {orders.map((o) => (
             <tr
               key={o._id}
-              className="border-t border-border/60 transition-colors hover:bg-muted/40"
+              className={cn(
+                "border-t border-border/60 transition-colors hover:bg-muted/40",
+                isNew(o) && "bg-accent-soft/30",
+              )}
             >
               <td className="px-3 py-2.5 pl-4">
-                <Link
-                  href={`/admin/orders/${o._id}`}
-                  className="font-semibold text-primary hover:underline"
-                >
-                  {o.orderNumber}
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/admin/orders/${o._id}`}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    {o.orderNumber}
+                  </Link>
+                  {isNew(o) && (
+                    <span className="inline-flex items-center rounded-full bg-danger px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-white">
+                      New
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
                 {formatDate(o.createdAt)}

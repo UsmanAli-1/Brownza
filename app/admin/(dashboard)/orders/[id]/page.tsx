@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { ExternalLink, XCircle } from "lucide-react";
+import { XCircle } from "lucide-react";
 import { getOrderById } from "@/lib/services/order-service";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { StatusSelect } from "@/components/admin/status-select";
 import { VerifyPaymentButton } from "@/components/admin/verify-payment-button";
+import { PaymentScreenshot } from "@/components/admin/payment-screenshot";
+import { OrderDetailSkeleton } from "@/components/admin/order-detail-skeleton";
 import { BackButton } from "@/components/common/back-button";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/utils";
@@ -30,12 +32,7 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default async function AdminOrderDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+async function OrderDetailContent({ id }: { id: string }) {
   const order = await getOrderById(id);
   if (!order) notFound();
 
@@ -51,7 +48,7 @@ export default async function AdminOrderDetailPage({
     : null;
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5">
+    <div className="mx-auto flex max-w-5xl flex-col gap-5">
       <BackButton fallbackHref="/admin/orders" label="Back to orders" />
 
       {order.status === "cancelled" && (
@@ -66,8 +63,8 @@ export default async function AdminOrderDetailPage({
         </div>
       )}
 
+      {/* Order information + Products */}
       <div className="divide-y divide-border rounded-3xl border border-border bg-card shadow-soft">
-        {/* Order information */}
         <section className="flex flex-col gap-4 p-5">
           <SectionLabel>Order information</SectionLabel>
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -86,28 +83,6 @@ export default async function AdminOrderDetailPage({
           </div>
         </section>
 
-        {/* Customer */}
-        <section className="flex flex-col gap-3 p-5">
-          <SectionLabel>Customer</SectionLabel>
-          <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-            <Field label="Name" value={order.customer.name} />
-            <Field label="Phone" value={order.customer.phone} />
-            <Field label="WhatsApp" value={order.customer.whatsapp} />
-            <Field label="Email" value={order.customer.email || "—"} />
-          </dl>
-        </section>
-
-        {/* Delivery */}
-        <section className="flex flex-col gap-3 p-5">
-          <SectionLabel>Delivery</SectionLabel>
-          <dl className="flex flex-col gap-3">
-            <Field label="Area" value={order.delivery.city} />
-            <Field label="Address" value={order.delivery.address} />
-            <Field label="Notes" value={order.delivery.notes || "—"} />
-          </dl>
-        </section>
-
-        {/* Products */}
         <section className="flex flex-col gap-3 p-5">
           <SectionLabel>Products</SectionLabel>
           <div className="overflow-x-auto">
@@ -141,66 +116,76 @@ export default async function AdminOrderDetailPage({
             </table>
           </div>
         </section>
+      </div>
 
-        {/* Payment */}
-        <section className="flex flex-col gap-3 p-5">
-          <SectionLabel>Payment</SectionLabel>
-          <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-            <Field
-              label="Method"
-              value={
-                order.payment.method === "COD"
-                  ? "Cash on delivery"
-                  : "Online payment"
-              }
-            />
-            <Field
-              label="Verification status"
-              value={order.payment.paymentVerified ? "Verified" : "Unverified"}
-            />
-            {verifiedAt && <Field label="Verified at" value={verifiedAt} />}
-          </dl>
-
-          {order.payment.method === "ONLINE" && (
-            <div className="mt-1 flex flex-col items-start gap-3">
-              {order.payment.screenshotUrl ? (
-                <a
-                  href={order.payment.screenshotUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative block w-fit overflow-hidden rounded-xl border border-border"
-                >
-                  <Image
-                    src={order.payment.screenshotUrl}
-                    alt="Payment screenshot"
-                    width={480}
-                    height={640}
-                    className="max-h-80 w-auto bg-muted object-contain"
-                  />
-                  <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-dark/70 px-2.5 py-1 text-xs font-medium text-white">
-                    <ExternalLink className="size-3" />
-                    Open
-                  </span>
-                </a>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No screenshot uploaded.
-                </p>
-              )}
-              {/* Verify payment is always available for online orders. */}
-              <VerifyPaymentButton
-                orderId={order._id}
-                orderNumber={order.orderNumber}
-                verified={order.payment.paymentVerified}
+      {/* Payment (screenshot) + Customer, side by side */}
+      <div className="rounded-3xl border border-border bg-card shadow-soft">
+        <div className="grid gap-6 p-5 md:grid-cols-2">
+          <div className="flex flex-col gap-3">
+            <SectionLabel>Payment</SectionLabel>
+            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <Field
+                label="Method"
+                value={
+                  order.payment.method === "COD"
+                    ? "Cash on delivery"
+                    : "Online payment"
+                }
               />
-            </div>
-          )}
-        </section>
+              <Field
+                label="Verification status"
+                value={order.payment.paymentVerified ? "Verified" : "Unverified"}
+              />
+              {verifiedAt && <Field label="Verified at" value={verifiedAt} />}
+            </dl>
 
-        {/* Order summary */}
+            {order.payment.method === "ONLINE" && (
+              <div className="mt-1 flex flex-col items-start gap-3">
+                {order.payment.screenshotUrl ? (
+                  <PaymentScreenshot url={order.payment.screenshotUrl} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No screenshot uploaded.
+                  </p>
+                )}
+                <VerifyPaymentButton
+                  orderId={order._id}
+                  orderNumber={order.orderNumber}
+                  verified={order.payment.paymentVerified}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-border pt-4 md:border-t-0 md:border-l md:pl-6 md:pt-0">
+            <SectionLabel>Customer</SectionLabel>
+            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <Field label="Name" value={order.customer.name} />
+              <Field label="Phone" value={order.customer.phone} />
+              <Field label="WhatsApp" value={order.customer.whatsapp} />
+              <Field label="Email" value={order.customer.email || "—"} />
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      {/* Delivery — one row */}
+      <div className="rounded-3xl border border-border bg-card shadow-soft">
+        <section className="flex flex-col gap-3 p-5">
+          <SectionLabel>Delivery</SectionLabel>
+          <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
+            <Field label="Area" value={order.delivery.city} />
+            <Field label="Address" value={order.delivery.address} />
+            <Field label="Notes" value={order.delivery.notes || "—"} />
+          </dl>
+        </section>
+      </div>
+
+      {/* Order summary */}
+      <div className="rounded-3xl border border-border bg-card shadow-soft">
         <section className="flex flex-col gap-3 p-5">
           <SectionLabel>Order summary</SectionLabel>
-          <dl className="flex flex-col gap-2 text-sm">
+          <dl className="flex max-w-xs flex-col gap-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd className="font-medium tabular-nums text-foreground">
@@ -226,5 +211,18 @@ export default async function AdminOrderDetailPage({
         </section>
       </div>
     </div>
+  );
+}
+
+export default async function AdminOrderDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return (
+    <Suspense fallback={<OrderDetailSkeleton />}>
+      <OrderDetailContent id={id} />
+    </Suspense>
   );
 }
