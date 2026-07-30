@@ -9,10 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { readLastOrder } from "@/lib/last-order";
 import { useHydrated } from "@/lib/use-hydrated";
-import { useOrderStream } from "@/lib/hooks/use-order-stream";
 import { LIFECYCLE_STEPS, ORDER_STATUS_META } from "@/lib/order-status";
 import { cn, formatPrice } from "@/lib/utils";
-import type { OrderEvent, OrderTrackView } from "@/types/order";
+import type { OrderTrackView } from "@/types/order";
+
+const POLL_INTERVAL_MS = 5000;
 
 type LoadState = "idle" | "loading" | "loaded" | "empty" | "notfound" | "error";
 
@@ -114,7 +115,20 @@ export function OrderTracker() {
       if (res.status === 404) return setState("notfound");
       if (!res.ok) return setState("error");
       const data = (await res.json()) as { order: OrderTrackView };
-      setOrder(data.order);
+      setOrder((prev) => {
+        if (
+          data.order.status === "cancelled" &&
+          prev?.status !== "cancelled" &&
+          !announcedCancelRef.current
+        ) {
+          announcedCancelRef.current = true;
+          toast.error("Your order was cancelled", {
+            description: data.order.cancellationReason || "No reason was provided.",
+            duration: 8000,
+          });
+        }
+        return data.order;
+      });
       setState("loaded");
     } catch {
       setState("error");
@@ -136,28 +150,16 @@ export function OrderTracker() {
     })();
   }, [hydrated, fetchOrder]);
 
-  // Live updates via SSE — instant instead of a 5s poll. The server only
-  // forwards events for this specific orderId (see /api/events?orderId=).
-  const handleEvent = React.useCallback(
-    (event: OrderEvent) => {
-      if (!orderId) return;
-      // Re-fetch the full customer-safe view on any change to this order —
-      // keeps this simple and always in sync with Mongo, rather than trying
-      // to hand-patch individual fields from the event payload.
-      void fetchOrder(orderId);
-
-      if (event.status === "cancelled" && !announcedCancelRef.current) {
-        announcedCancelRef.current = true;
-        toast.error("Your order was cancelled", {
-          description: event.cancellationReason || "No reason was provided.",
-          duration: 8000,
-        });
-      }
-    },
-    [orderId, fetchOrder],
-  );
-
-  useOrderStream(handleEvent, orderId ?? undefined);
+  // Live-ish updates via polling — we're on Vercel, where a persistent SSE
+  // connection isn't reliable (serverless functions can land on different
+  // instances than the one that created the order), so we re-check Mongo on
+  // an interval instead of relying on an in-memory push that can silently
+  // miss events.
+  React.useEffect(() => {
+    if (!orderId) return;
+    const timer = setInterval(() => void fetchOrder(orderId), POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [orderId, fetchOrder]);
 
   if (!hydrated || state === "loading" || state === "idle") {
     return (

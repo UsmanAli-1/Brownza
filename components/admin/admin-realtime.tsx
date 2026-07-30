@@ -3,59 +3,76 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useOrderStream } from "@/lib/hooks/use-order-stream";
 import { playNotificationSound, primeAudio } from "@/lib/notification-sound";
 import { formatPrice } from "@/lib/utils";
-import type { OrderEvent } from "@/types/order";
-import type { PreOrderEvent } from "@/lib/pre-order-events";
+
+const POLL_INTERVAL_MS = 6000;
+
+interface NotificationsResponse {
+  newOrders: { id: string; orderNumber: string; customerName: string; total: number }[];
+  newPreOrders: { id: string; fullName: string }[];
+  serverTime: string;
+}
 
 /**
- * Keeps admin pages live. Opens ONE shared SSE connection (mounted in the
- * admin layout) carrying both order and pre-order events, pops a toast +
- * plays a sound on new orders, and coalesces refreshes so server
- * components re-fetch without a manual reload.
- *
- * Deliberately a single EventSource — a second permanent connection for
- * pre-order events was previously competing for the browser's per-origin
- * connection limit and silently starving this one, which broke the
- * new-order notification sound.
+ * Keeps admin pages live via polling (not SSE). We're deployed on Vercel,
+ * where serverless functions can't hold a shared in-memory EventEmitter open
+ * across instances — the order that creates an event and the connection
+ * listening for it can land on different instances, silently dropping the
+ * "instant" push. Polling always eventually reflects the true Mongo state,
+ * at the cost of a bounded ~6s delay instead of instant delivery.
  */
 export function AdminRealtime() {
   const router = useRouter();
-  const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Cursor starts at "now" so we never replay orders that already existed
+  // before this component mounted.
+  const sinceRef = React.useRef<string>(new Date().toISOString());
+  const inFlightRef = React.useRef(false);
 
-  const scheduleRefresh = React.useCallback(() => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => router.refresh(), 400);
-  }, [router]);
-
-  const onOrderEvent = React.useCallback(
-    (event: OrderEvent) => {
-      if (event.type === "order.created") {
-        toast("🔔 New order received", {
-          description: `${event.orderNumber} · ${
-            event.customerName ?? "Customer"
-          } · ${formatPrice(event.total ?? 0)}`,
-          duration: 8000,
-        });
-        playNotificationSound(
-          typeof document !== "undefined" && document.hidden,
+  React.useEffect(() => {
+    const poll = async () => {
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+      try {
+        const res = await fetch(
+          `/api/admin/notifications?since=${encodeURIComponent(sinceRef.current)}`,
         );
+        if (!res.ok) return;
+        const data = (await res.json()) as NotificationsResponse;
+        sinceRef.current = data.serverTime;
+
+        if (data.newOrders.length === 0 && data.newPreOrders.length === 0) {
+          return;
+        }
+
+        for (const order of data.newOrders) {
+          toast("🔔 New order received", {
+            description: `${order.orderNumber} · ${order.customerName} · ${formatPrice(
+              order.total,
+            )}`,
+            duration: 8000,
+          });
+        }
+        if (data.newOrders.length > 0) {
+          playNotificationSound(
+            typeof document !== "undefined" && document.hidden,
+          );
+        }
+        for (const preOrder of data.newPreOrders) {
+          toast.info("New pre-order request", { description: preOrder.fullName });
+        }
+
+        router.refresh();
+      } catch {
+        // network hiccup — next poll will retry
+      } finally {
+        inFlightRef.current = false;
       }
-      scheduleRefresh();
-    },
-    [scheduleRefresh],
-  );
+    };
 
-  const onPreOrderEvent = React.useCallback(
-    (event: PreOrderEvent) => {
-      toast.info("New pre-order request", { description: event.fullName });
-      scheduleRefresh();
-    },
-    [scheduleRefresh],
-  );
-
-  useOrderStream(onOrderEvent, undefined, onPreOrderEvent);
+    const timer = setInterval(poll, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [router]);
 
   // Unlock audio on the first interaction anywhere on the page, so a new-
   // order chime that arrives before the admin has clicked anything yet
@@ -68,12 +85,6 @@ export function AdminRealtime() {
     return () => {
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
-    };
-  }, []);
-
-  React.useEffect(() => {
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
     };
   }, []);
 

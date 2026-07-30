@@ -47,24 +47,6 @@ export interface OrderRecord {
   updatedAt: string;
 }
 
-/** Lightweight event pushed over SSE. Clients refetch full data only if needed. */
-export interface OrderEvent {
-  type:
-    | "order.created"
-    | "order.updated"
-    | "payment.verified"
-    | "order.cancelled"
-    | "order.delivered";
-  orderId: string;
-  orderNumber: string;
-  status: OrderStatus;
-  paymentVerified: boolean;
-  cancellationReason?: string;
-  /** Included so the admin new-order toast needn't refetch. */
-  customerName?: string;
-  total?: number;
-}
-
 /** Customer-safe order view for the public tracking page (no PII beyond area). */
 export interface OrderTrackView {
   orderNumber: string;

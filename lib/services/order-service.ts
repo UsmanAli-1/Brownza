@@ -6,7 +6,6 @@ import { getLedger, recordOrderCreated, recordOrderDelivered } from "@/lib/model
 import { recordMonthlyDelivered, getMonthlyRevenue } from "@/lib/models/monthly-stats";
 import { nextSequence } from "@/lib/models/counter";
 import { cloudinary } from "@/lib/cloudinary";
-import { emitOrderEvent } from "@/lib/events";
 import { logActivity } from "@/lib/services/activity-service";
 import { canTransition } from "@/lib/order-status";
 import { ORDER_STATUSES, type OrderStatus } from "@/types";
@@ -14,7 +13,6 @@ import type {
   AnalyticsData,
   CreateOrderInput,
   DashboardStats,
-  OrderEvent,
   OrderRecord,
   OrderTrackView,
   PaginatedOrders,
@@ -72,19 +70,6 @@ function serialize(o: OrderLean): OrderRecord {
   };
 }
 
-function broadcast(record: OrderRecord, type: OrderEvent["type"]): void {
-  emitOrderEvent({
-    type,
-    orderId: record._id,
-    orderNumber: record.orderNumber,
-    status: record.status,
-    paymentVerified: record.payment.paymentVerified,
-    cancellationReason: record.cancellationReason,
-    customerName: record.customer.name,
-    total: record.total,
-  });
-}
-
 // ---- Mutations ----
 
 export async function createOrder(
@@ -110,8 +95,6 @@ export async function createOrder(
     status: "pending",
   });
   const record = serialize(created.toObject() as unknown as OrderLean);
-
-  broadcast(record, "order.created");
 
   // Neither the ledger increment nor the activity log needs to block the
   // customer's response — the order is already saved and confirmed by this
@@ -152,10 +135,9 @@ export async function updateOrderStatus(
 
   const record = serialize(doc.toObject() as unknown as OrderLean);
 
-  // Broadcasting and logging never need to block the admin's response — the
-  // status change is already saved by this point.
+  // Logging never needs to block the admin's response — the status change
+  // is already saved by this point.
   if (next === "cancelled") {
-    broadcast(record, "order.cancelled");
     void logActivity({
       type: "order.cancelled",
       orderId: record._id,
@@ -173,7 +155,6 @@ export async function updateOrderStatus(
       recordMonthlyDelivered(record.total),
     ]).catch((err) => console.error("delivered ledger update failed", err));
 
-    broadcast(record, "order.delivered");
     void logActivity({
       type: "order.delivered",
       orderId: record._id,
@@ -181,7 +162,6 @@ export async function updateOrderStatus(
       message: `Order ${record.orderNumber} delivered`,
     });
   } else if (next === "accepted") {
-    broadcast(record, "order.updated");
     void logActivity({
       type: "order.accepted",
       orderId: record._id,
@@ -189,7 +169,6 @@ export async function updateOrderStatus(
       message: `Order ${record.orderNumber} accepted`,
     });
   } else {
-    broadcast(record, "order.updated");
     void logActivity({
       type: "status.updated",
       orderId: record._id,
@@ -216,7 +195,6 @@ export async function verifyOrderPayment(
   ).lean<OrderLean>();
   if (!doc) return null;
   const record = serialize(doc);
-  broadcast(record, "payment.verified");
   void logActivity({
     type: "payment.verified",
     orderId: record._id,

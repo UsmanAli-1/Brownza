@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { PreOrder, type PreOrderDoc, type PreOrderType } from "@/lib/models/pre-order";
-import { emitPreOrderEvent } from "@/lib/pre-order-events";
 
 export interface CreatePreOrderInput {
   fullName: string;
@@ -21,12 +20,6 @@ export async function createPreOrder(
     preferredDateTime: new Date(input.preferredDateTime),
   });
   const record = doc.toObject({ flattenObjectIds: true }) as PreOrderDoc & { _id: string };
-
-  emitPreOrderEvent({
-    type: "preorder.created",
-    id: record._id,
-    fullName: record.fullName,
-  });
 
   return record;
 }
