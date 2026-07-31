@@ -4,9 +4,12 @@ import { Eye } from "lucide-react";
 import { listPreOrders } from "@/lib/services/pre-order-service";
 import { DeletePreOrderButton } from "@/components/admin/delete-preorder-button";
 import { DeleteAllPreOrdersButton } from "@/components/admin/delete-all-preorders-button";
+import { Pagination } from "@/components/admin/pagination";
 
 export const metadata: Metadata = { title: "Form Data" };
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 20;
 
 function formatDate(d: Date | string) {
   return new Date(d).toLocaleString("en-PK", {
@@ -17,8 +20,17 @@ function formatDate(d: Date | string) {
   });
 }
 
-export default async function FormDataPage() {
-  const submissions = await listPreOrders();
+export default async function FormDataPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const sp = await searchParams;
+  const page = Math.max(1, Number(sp.page) || 1);
+  const { submissions, total, totalPages } = await listPreOrders({
+    page,
+    pageSize: PAGE_SIZE,
+  });
 
   const th =
     "sticky top-0 z-10 bg-card px-3 py-2.5 text-left font-medium first:pl-4 last:pr-4";
@@ -30,16 +42,24 @@ export default async function FormDataPage() {
           <h1 className="font-heading text-lg font-semibold text-foreground sm:text-2xl">
             Form Data
           </h1>
-          {submissions.length > 0 && <DeleteAllPreOrdersButton />}
+          {total > 0 && <DeleteAllPreOrdersButton />}
         </div>
         <p className="text-sm text-muted-foreground">
           Pre-order enquiries submitted from the website.
         </p>
+        {total > 0 && (
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {total} submission{total === 1 ? "" : "s"}
+            {totalPages > 1 && ` · page ${page} of ${totalPages}`}
+          </p>
+        )}
       </div>
 
       {submissions.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-muted-foreground">
-          No pre-order requests yet.
+          {total === 0
+            ? "No pre-order requests yet."
+            : "No submissions on this page."}
         </div>
       ) : (
         <div className="max-h-[70vh] overflow-auto rounded-2xl border border-border bg-card shadow-soft">
@@ -110,6 +130,8 @@ export default async function FormDataPage() {
           </table>
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} />
     </div>
   );
 }

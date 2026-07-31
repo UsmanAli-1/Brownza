@@ -24,9 +24,43 @@ export async function createPreOrder(
   return record;
 }
 
-export async function listPreOrders() {
+export interface PaginatedPreOrders {
+  submissions: (PreOrderDoc & { _id: mongoose.Types.ObjectId })[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+/**
+ * Paginated — an unbounded `find()` here would slow down linearly with every
+ * submission ever received, same problem `listOrders()` already solves for
+ * the orders list. `createdAt: -1` is covered by the index on that field
+ * (lib/models/pre-order.ts), so sorting doesn't require an in-memory sort.
+ */
+export async function listPreOrders(
+  opts: { page?: number; pageSize?: number } = {},
+): Promise<PaginatedPreOrders> {
   await connectToDatabase();
-  return PreOrder.find().sort({ createdAt: -1 }).lean();
+  const page = Math.max(1, opts.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, opts.pageSize ?? 20));
+
+  const [submissions, total] = await Promise.all([
+    PreOrder.find()
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .lean<(PreOrderDoc & { _id: mongoose.Types.ObjectId })[]>(),
+    PreOrder.countDocuments(),
+  ]);
+
+  return {
+    submissions,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  };
 }
 
 export async function getPreOrderById(id: string) {
