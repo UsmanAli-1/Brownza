@@ -185,9 +185,11 @@ export const products: readonly Product[] = [
     featured: false,
     available: true,
     badge: "Limited",
-    serves: "Box of 6",
-    // Intentionally no `variants` — this is a build-your-own item, kept as a
-    // simple add-to-cart for now. Say the word if you want a pack modal here too.
+    serves: "Box of 6 or 12",
+    variants: [
+      { id: "pack-6", label: "Box of 6", price: 1400 },
+      { id: "pack-12", label: "Box of 12", price: 2800 }, // dummy — confirm bulk price
+    ],
   },
   {
     id: "brownie-slab",

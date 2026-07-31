@@ -81,7 +81,6 @@ export const ORDER_STATUSES = [
   "pending",
   "accepted",
   "preparing",
-  "ready",
   "out-for-delivery",
   "delivered",
   "cancelled",

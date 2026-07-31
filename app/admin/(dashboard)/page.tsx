@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Wallet, TrendingUp, PackageCheck, Receipt } from "lucide-react";
+import { Wallet, TrendingUp, PackageCheck, Truck } from "lucide-react";
 import { getAnalytics, getDashboardStats } from "@/lib/services/order-service";
 import { StatCard } from "@/components/admin/stat-card";
 import { StatCardGridSkeleton } from "@/components/admin/stat-card-skeleton";
 import { AnalyticsPanel } from "@/components/admin/analytics-panel";
 import { AnalyticsPanelSkeleton } from "@/components/admin/analytics-panel-skeleton";
-import { ResetAllDataButton } from "@/components/admin/reset-all-data-button";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -48,10 +47,10 @@ async function DashboardData() {
           icon={PackageCheck}
         />
         <StatCard
-          label="Average order value"
-          value={stats.averageOrderValue}
+          label="Total delivery revenue"
+          value={stats.totalDeliveryRevenue}
           currency
-          icon={Receipt}
+          icon={Truck}
         />
       </div>
 
@@ -82,8 +81,6 @@ export default function AdminDashboardPage() {
       >
         <DashboardData />
       </Suspense>
-
-      <ResetAllDataButton />
     </div>
   );
 }

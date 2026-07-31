@@ -19,6 +19,12 @@ async function TodaysStats() {
   return (
     <div className={STAT_GRID_CLASS}>
       <StatCard label="Today's orders" value={today.todayOrders} />
+      <StatCard label="Today's revenue" value={today.todayRevenue} currency />
+      <StatCard
+        label="Today's DC"
+        value={today.todayDeliveryCharges}
+        currency
+      />
       <StatCard
         label="Pending"
         value={today.byStatus.pending}
@@ -35,11 +41,6 @@ async function TodaysStats() {
         accentClassName="text-orange-600"
       />
       <StatCard
-        label="Ready"
-        value={today.byStatus.ready}
-        accentClassName="text-purple-600"
-      />
-      <StatCard
         label="Out for delivery"
         value={today.byStatus["out-for-delivery"]}
         accentClassName="text-indigo-600"
@@ -54,7 +55,6 @@ async function TodaysStats() {
         value={today.byStatus.cancelled}
         accentClassName="text-red-600"
       />
-      <StatCard label="Today's revenue" value={today.todayRevenue} currency />
     </div>
   );
 }

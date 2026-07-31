@@ -150,9 +150,12 @@ export async function updateOrderStatus(
     // Both ledgers record here — "delivered" is terminal, so this revenue
     // is permanently counted regardless of what happens to the order
     // document afterward, including deletion. Run together, fire-and-forget.
+    // Product revenue (subtotal) and delivery-charge revenue are tracked
+    // separately so "Total/Monthly revenue" reflect sales only, not the
+    // delivery fee collected alongside them.
     void Promise.all([
-      recordOrderDelivered(record.total),
-      recordMonthlyDelivered(record.total),
+      recordOrderDelivered(record.subtotal, record.deliveryFee),
+      recordMonthlyDelivered(record.subtotal),
     ]).catch((err) => console.error("delivered ledger update failed", err));
 
     void logActivity({
@@ -337,11 +340,16 @@ interface TodayFacet {
   byStatus: { _id: OrderStatus; count: number }[];
   total: { count: number }[];
   revenue: { _id: null; revenue: number }[];
+  deliveryCharges: { _id: null; deliveryCharges: number }[];
 }
 
 export interface TodayStats {
   todayOrders: number;
+  /** Product-price-only revenue (subtotal) of orders delivered today. */
   todayRevenue: number;
+  /** Delivery-fee total of orders delivered today — tracked separately from
+   * product revenue. */
+  todayDeliveryCharges: number;
   byStatus: Record<OrderStatus, number>;
 }
 
@@ -358,7 +366,11 @@ export async function getTodayStats(): Promise<TodayStats> {
         total: [{ $count: "count" }],
         revenue: [
           { $match: { status: "delivered" } },
-          { $group: { _id: null, revenue: { $sum: "$total" } } },
+          { $group: { _id: null, revenue: { $sum: "$subtotal" } } },
+        ],
+        deliveryCharges: [
+          { $match: { status: "delivered" } },
+          { $group: { _id: null, deliveryCharges: { $sum: "$deliveryFee" } } },
         ],
       },
     },
@@ -373,6 +385,7 @@ export async function getTodayStats(): Promise<TodayStats> {
   return {
     todayOrders: facet.total[0]?.count ?? 0,
     todayRevenue: facet.revenue[0]?.revenue ?? 0,
+    todayDeliveryCharges: facet.deliveryCharges[0]?.deliveryCharges ?? 0,
     byStatus,
   };
 }
@@ -437,7 +450,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
           ],
           todayRevenue: [
             { $match: { status: "delivered", createdAt: { $gte: startOfToday } } },
-            { $group: { _id: null, revenue: { $sum: "$total" } } },
+            { $group: { _id: null, revenue: { $sum: "$subtotal" } } },
           ],
           pendingOnline: [
             {
@@ -465,11 +478,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     todayOrders: facet.today[0]?.count ?? 0,
     todayRevenue: facet.todayRevenue[0]?.revenue ?? 0,
     totalRevenue: ledger.deliveredRevenue,
+    totalDeliveryRevenue: ledger.deliveredDeliveryRevenue,
     pendingOnlinePayments: facet.pendingOnline[0]?.count ?? 0,
-    averageOrderValue:
-      ledger.ordersCreated > 0
-        ? Math.round(ledger.revenueCreated / ledger.ordersCreated)
-        : 0,
   };
 }
 

@@ -5,7 +5,13 @@ export interface StatsLedgerDoc {
   ordersCreated: number;
   revenueCreated: number;
   deliveredOrders: number;
+  /** Product-price-only revenue (subtotal) of delivered orders — delivery
+   * charges are tracked separately in `deliveredDeliveryRevenue` and must
+   * never be folded back into this figure. */
   deliveredRevenue: number;
+  /** Sum of `deliveryFee` across delivered orders — kept apart from product
+   * revenue so "Total revenue" reflects sales, not delivery logistics. */
+  deliveredDeliveryRevenue: number;
 }
 
 const StatsLedgerSchema = new Schema<StatsLedgerDoc>({
@@ -14,6 +20,7 @@ const StatsLedgerSchema = new Schema<StatsLedgerDoc>({
   revenueCreated: { type: Number, default: 0 },
   deliveredOrders: { type: Number, default: 0 },
   deliveredRevenue: { type: Number, default: 0 },
+  deliveredDeliveryRevenue: { type: Number, default: 0 },
 });
 
 export const StatsLedger: Model<StatsLedgerDoc> =
@@ -37,10 +44,19 @@ export async function recordOrderCreated(total: number): Promise<void> {
   );
 }
 
-export async function recordOrderDelivered(total: number): Promise<void> {
+export async function recordOrderDelivered(
+  productRevenue: number,
+  deliveryRevenue: number,
+): Promise<void> {
   await StatsLedger.updateOne(
     { singleton: "global" },
-    { $inc: { deliveredOrders: 1, deliveredRevenue: total } },
+    {
+      $inc: {
+        deliveredOrders: 1,
+        deliveredRevenue: productRevenue,
+        deliveredDeliveryRevenue: deliveryRevenue,
+      },
+    },
     { upsert: true },
   );
 }

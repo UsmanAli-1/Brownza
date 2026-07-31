@@ -34,21 +34,28 @@ export function StatusSelect({
   const router = useRouter();
   const [saving, setSaving] = React.useState(false);
   const [cancelOpen, setCancelOpen] = React.useState(false);
-  const options = ALLOWED_TRANSITIONS[status];
+  // Defensive: `status` comes straight from the DB, so a legacy value from
+  // before a status was retired (e.g. a since-removed "ready") could exist
+  // for an old order. Falling back rather than indexing straight into these
+  // records avoids crashing this row over one out-of-range order.
+  const options = ALLOWED_TRANSITIONS[status] ?? [];
+  const meta = ORDER_STATUS_META[status] ?? {
+    label: status,
+    className: "bg-muted text-muted-foreground",
+    dot: "bg-muted-foreground",
+  };
 
   if (isTerminal(status) || options.length === 0) {
     return (
       <span
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-          ORDER_STATUS_META[status].className,
+          meta.className,
           className,
         )}
       >
-        <span
-          className={cn("size-1.5 rounded-full", ORDER_STATUS_META[status].dot)}
-        />
-        {ORDER_STATUS_META[status].label}
+        <span className={cn("size-1.5 rounded-full", meta.dot)} />
+        {meta.label}
       </span>
     );
   }
@@ -93,7 +100,7 @@ export function StatusSelect({
         className="h-9 min-w-36 text-xs"
       >
         <option value={status} disabled>
-          {ORDER_STATUS_META[status].label}
+          {meta.label}
         </option>
         {options.map((t) => (
           <option key={t} value={t}>

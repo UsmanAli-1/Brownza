@@ -76,9 +76,12 @@ export interface DashboardStats {
   byStatus: Record<OrderStatus, number>;
   todayOrders: number;
   todayRevenue: number;
+  /** Product-price-only revenue (subtotal) of delivered orders. */
   totalRevenue: number;
+  /** Delivery-fee total of delivered orders — tracked separately from
+   * product revenue so it isn't double-counted as sales. */
+  totalDeliveryRevenue: number;
   pendingOnlinePayments: number;
-  averageOrderValue: number;
 }
 
 export interface AnalyticsData {

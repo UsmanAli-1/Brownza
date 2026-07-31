@@ -20,11 +20,6 @@ export const ORDER_STATUS_META: Record<
     className: "bg-orange-100 text-orange-800",
     dot: "bg-orange-500",
   },
-  ready: {
-    label: "Ready",
-    className: "bg-purple-100 text-purple-800",
-    dot: "bg-purple-500",
-  },
   "out-for-delivery": {
     label: "Out for delivery",
     className: "bg-indigo-100 text-indigo-800",
@@ -50,9 +45,8 @@ export const ORDER_STATUS_META: Record<
  */
 export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ["accepted", "cancelled"],
-  accepted: ["preparing", "ready", "out-for-delivery", "delivered", "cancelled"],
-  preparing: ["ready", "out-for-delivery", "delivered", "cancelled"],
-  ready: ["out-for-delivery", "delivered", "cancelled"],
+  accepted: ["preparing", "out-for-delivery", "delivered", "cancelled"],
+  preparing: ["out-for-delivery", "delivered", "cancelled"],
   "out-for-delivery": ["delivered", "cancelled"],
   delivered: [],
   cancelled: [],
@@ -71,7 +65,6 @@ export const ACTION_LABEL: Record<OrderStatus, string> = {
   pending: "Pending",
   accepted: "Accept",
   preparing: "Preparing",
-  ready: "Ready",
   "out-for-delivery": "Out for delivery",
   delivered: "Delivered",
   cancelled: "Cancel",
@@ -87,7 +80,6 @@ export const LIFECYCLE_STEPS: OrderStatus[] = [
   "pending",
   "accepted",
   "preparing",
-  "ready",
   "out-for-delivery",
   "delivered",
 ];

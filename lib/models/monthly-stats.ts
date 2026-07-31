@@ -10,6 +10,7 @@ export interface MonthlyStatsDoc {
   /** "YYYY-MM", e.g. "2026-07" */
   month: string;
   orders: number;
+  /** Product-price-only revenue (subtotal) — excludes delivery charges. */
   revenue: number;
 }
 
@@ -27,10 +28,10 @@ export function currentMonthKey(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export async function recordMonthlyDelivered(total: number): Promise<void> {
+export async function recordMonthlyDelivered(productRevenue: number): Promise<void> {
   await MonthlyStats.updateOne(
     { month: currentMonthKey() },
-    { $inc: { orders: 1, revenue: total } },
+    { $inc: { orders: 1, revenue: productRevenue } },
     { upsert: true },
   );
 }

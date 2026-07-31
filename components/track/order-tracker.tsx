@@ -202,19 +202,23 @@ export function OrderTracker() {
               {order.orderNumber}
             </p>
           </div>
+          {/* Defensive fallback: `order.status` is whatever's stored in
+              Mongo, so a legacy value from a since-retired status (e.g. a
+              removed "ready") shouldn't crash this customer-facing page. */}
           <span
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
-              ORDER_STATUS_META[order.status].className,
+              ORDER_STATUS_META[order.status]?.className ??
+                "bg-muted text-muted-foreground",
             )}
           >
             <span
               className={cn(
                 "size-1.5 rounded-full",
-                ORDER_STATUS_META[order.status].dot,
+                ORDER_STATUS_META[order.status]?.dot ?? "bg-muted-foreground",
               )}
             />
-            {ORDER_STATUS_META[order.status].label}
+            {ORDER_STATUS_META[order.status]?.label ?? order.status}
           </span>
         </div>
 

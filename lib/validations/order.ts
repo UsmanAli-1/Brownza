@@ -50,7 +50,6 @@ export const updateOrderSchema = z.object({
       "pending",
       "accepted",
       "preparing",
-      "ready",
       "out-for-delivery",
       "delivered",
       "cancelled",
