@@ -5,25 +5,34 @@
 export const siteConfig = {
   name: "Brownza",
   /** Used in <title> templates and OG site name. */
-  title: "Brownza — Freshly Baked Cloud Bakery",
+  title: "Brownza — Cloud Bakery in Karachi | Cookies, Brownies & Desserts",
   description:
-    "A Karachi cloud bakery — Nutella-filled cookies, fudge brownies, steamed dumplings and oven-baked lasagna, freshly baked to order and delivered to your door.",
-  // Replace with the real production domain before deploying.
-  url: "https://brownza.com",
-  /** OG/Twitter share image — swap for a dedicated 1200×630 asset later. */
-  ogImage: "/logo.png",
+    "Brownza is a cloud bakery in Karachi — Nutella-filled cookies, fudge brownies, steamed dumplings and oven-baked lasagna, freshly baked to order and delivered to your door.",
+  // Canonical production domain — both brownza.shop and www.brownza.shop
+  // resolve, so next.config.ts redirects www -> this apex domain to avoid
+  // splitting SEO authority across two hostnames.
+  url: "https://brownza.shop",
+  ogImage: "/og-image.png",
   locale: "en_PK",
   keywords: [
     "Brownza",
+    "Brownza bakery",
+    "Brownza Karachi",
     "cloud bakery",
+    "cloud bakery Karachi",
+    "Karachi cloud bakery",
+    "bakery in Karachi",
     "Karachi bakery",
+    "online bakery Karachi",
     "brownies",
     "cookies",
     "Nutella brownie",
+    "Nutella cookie Karachi",
     "steamed dumplings",
     "lasagna",
     "order dessert online",
     "dessert delivery Karachi",
+    "cake delivery Karachi",
   ],
 } as const;
 

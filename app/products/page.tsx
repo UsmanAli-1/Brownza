@@ -10,9 +10,9 @@ import { categories } from "@/data/categories";
 import type { Product } from "@/types";
 
 export const metadata: Metadata = {
-  title: "Menu",
+  title: "Menu — Cloud Bakery in Karachi",
   description:
-    "Browse the Brownza menu — Nutella-filled cookies, fudge brownies, steamed dumplings and oven-baked lasagna. Freshly baked to order and delivered across Karachi.",
+    "Browse the Brownza menu — Nutella-filled cookies, fudge brownies, steamed dumplings and oven-baked lasagna. A Karachi cloud bakery, freshly baked to order and delivered to your door.",
   alternates: { canonical: "/products" },
 };
 
@@ -30,6 +30,24 @@ export default function ProductsPage() {
     <>
       <ScrollToTopOnLoad />
       <MenuHero />
+
+      {/* The only visible on-page heading/copy for the site's actual
+          homepage (`/` redirects here) — previously this page had no <h1>
+          and no crawlable text mentioning what Brownza is or where it
+          serves, just a hero image carousel and product cards. Search
+          engines weigh visible body text far more than meta tags alone. */}
+      <div className="py-6 text-center sm:py-8">
+        <Container>
+          <h1 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
+            Brownza — Cloud Bakery in Karachi
+          </h1>
+          <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+            Nutella-filled cookies, fudge brownies, steamed dumplings and
+            oven-baked lasagna — baked fresh to order and delivered across
+            Karachi.
+          </p>
+        </Container>
+      </div>
 
       <div className="sticky top-0 z-30 border-b border-border bg-muted/95 py-3 backdrop-blur-sm">
         <Container>
