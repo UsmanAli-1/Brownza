@@ -11,19 +11,13 @@ const nextConfig: NextConfig = {
   // 302 here would tell search engines not to transfer link equity to
   // /products, which is exactly what we want them to index.
   async redirects() {
-    return [
-      { source: "/", destination: "/products", permanent: true },
-      // Both brownza.shop and www.brownza.shop currently resolve — without
-      // this, search engines see two separate sites splitting the same
-      // content's authority/backlinks in half. www is redirected to the
-      // canonical apex domain (config/site.ts's siteConfig.url).
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "www.brownza.shop" }],
-        destination: "https://brownza.shop/:path*",
-        permanent: true,
-      },
-    ];
+    return [{ source: "/", destination: "/products", permanent: true }];
+    // NOTE: a www <-> apex redirect is NOT done here. Vercel's own
+    // domain-level redirect (Project Settings -> Domains) already
+    // canonicalizes one to the other — adding a second, app-level redirect
+    // in next.config.ts caused an infinite loop (ERR_TOO_MANY_REDIRECTS)
+    // when it disagreed with which side Vercel considers canonical. If
+    // www/apex need to be unified, do it in the Vercel dashboard only.
   },
   images: {
     // Temporary remote source for royalty-free landscape/lifestyle imagery.
