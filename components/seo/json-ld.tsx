@@ -48,6 +48,11 @@ export function JsonLd() {
         logo,
         telephone: CONTACT.phoneDisplay,
         email: CONTACT.emailDisplay,
+        // A URL reference is valid per schema.org's hasMenu property — the
+        // full Menu/MenuItem breakdown (with prices) lives on that page
+        // itself via <MenuJsonLd>, scoped to where the content actually is
+        // rather than duplicating the whole catalogue into every page's head.
+        hasMenu: `${siteConfig.url}/products`,
         priceRange: "$$",
         servesCuisine: ["Bakery", "Desserts", "Cookies", "Brownies", "Fast Food"],
         areaServed: { "@type": "City", name: CONTACT.city },

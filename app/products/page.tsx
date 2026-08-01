@@ -5,6 +5,7 @@ import { ScrollToTopOnLoad } from "@/components/menu/scroll-to-top-on-load";
 import { CategoryFilter } from "@/components/product/category-filter";
 import { ProductSearch } from "@/components/product/product-search";
 import { MenuContent } from "@/components/product/menu-content";
+import { MenuJsonLd } from "@/components/seo/menu-json-ld";
 import { getProductsByCategory, getFeaturedProducts } from "@/data/products";
 import { categories } from "@/data/categories";
 import type { Product } from "@/types";
@@ -28,6 +29,7 @@ export default function ProductsPage() {
 
   return (
     <>
+      <MenuJsonLd categories={categories} productsByCategory={productsByCategory} />
       <ScrollToTopOnLoad />
       <MenuHero />
 

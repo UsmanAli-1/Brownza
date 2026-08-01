@@ -59,8 +59,18 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     images: [siteConfig.ogImage],
   },
-  // Favicon/apple-touch-icon come from app/icon.png + app/apple-icon.png
-  // (Next.js file-convention metadata) — no explicit `icons` override needed.
+  // Explicit rather than relying solely on Next's file-convention inference
+  // (app/icon.png, app/apple-icon.png) — some crawlers specifically look for
+  // a literal <link rel="shortcut icon"> pointing at /favicon.ico rather
+  // than trusting the convention-generated <link rel="icon">.
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
   robots: {
     index: true,
     follow: true,

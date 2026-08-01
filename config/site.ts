@@ -8,10 +8,13 @@ export const siteConfig = {
   title: "Brownza — Cloud Bakery in Karachi | Cookies, Brownies & Desserts",
   description:
     "Brownza is a cloud bakery in Karachi — Nutella-filled cookies, fudge brownies, steamed dumplings and oven-baked lasagna, freshly baked to order and delivered to your door.",
-  // Canonical production domain — both brownza.shop and www.brownza.shop
-  // resolve, so next.config.ts redirects www -> this apex domain to avoid
-  // splitting SEO authority across two hostnames.
-  url: "https://brownza.shop",
+  // Canonical production domain. Vercel's own domain config redirects
+  // brownza.shop -> www.brownza.shop (confirmed via curl -I), so this MUST
+  // be the www version to match — every canonical/OG/JSON-LD URL here needs
+  // to point at whichever host actually serves the final 200, not a
+  // redirect hop, or crawlers see a mismatch between what this site claims
+  // as canonical and what it actually resolves to.
+  url: "https://www.brownza.shop",
   ogImage: "/og-image.png",
   locale: "en_PK",
   keywords: [
