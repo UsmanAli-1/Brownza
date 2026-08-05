@@ -8,7 +8,7 @@ import { siteConfig } from "@/config/site";
 import { CONTACT, NAV_LINKS } from "@/lib/constants";
 import { categories } from "@/data/categories";
 
-const TECHMORPH_URL = "https://techmorphinnovation.site";
+const RIVOXA_URL = "https://rivoxa.tech";
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -132,18 +132,18 @@ export function Footer() {
           <span className="flex items-center gap-2">
             Powered by
             <a
-              href={TECHMORPH_URL}
+              href={RIVOXA_URL}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Techmorph Innovation"
+              aria-label="Rivoxa Tech"
               className="inline-flex transition-opacity hover:opacity-80"
             >
              <Image
-                src="/company_logo/tI-logo.png"
-                alt="Techmorph Innovation"
-                width={160}
-                height={48}
-                className="h-8 w-auto shrink-0 object-contain sm:h-9"
+                src="/company_logo/Rivoxa_logo.png"
+                alt="Rivoxa Tech"
+                width={140}
+                height={40}
+                className="h-8 w-auto shrink-0 object-contain sm:h-9 "
               />
             </a>
           </span>

@@ -28,13 +28,40 @@ export function BankDetails() {
         </span>
         <div>
           <p className="text-xs uppercase tracking-wider text-primary-foreground/60">
-            Bank transfer
+            Online Payments
           </p>
           <p className="font-heading text-lg font-semibold">
-            {BANK_DETAILS.bank}
+            {BANK_DETAILS.jazzcash} | {BANK_DETAILS.bank} 
           </p>
         </div>
       </div>
+
+      <dl className="flex flex-col gap-3 border-b border-primary-foreground/10 px-5 py-4 text-sm">
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-primary-foreground/60">Account number</dt>
+          <dd className="flex items-center gap-2">
+            <span className="font-medium tracking-wide tabular-nums">
+              {BANK_DETAILS.jazzcashno}
+            </span>
+            <button
+              type="button"
+              onClick={copyAccount}
+              aria-label="Copy account number"
+              className="inline-flex size-8 items-center justify-center rounded-lg bg-primary-foreground/10 text-primary-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            >
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </button>
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-primary-foreground/60">Holder name</dt>
+          <dd className="font-medium">{BANK_DETAILS.jazzcashtitle}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-primary-foreground/60">Bank</dt>
+          <dd className="font-medium">{BANK_DETAILS.jazzcash}</dd>
+        </div>
+      </dl>
 
       <dl className="flex flex-col gap-3 px-5 py-4 text-sm">
         <div className="flex items-center justify-between gap-3">

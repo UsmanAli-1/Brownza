@@ -151,6 +151,12 @@ export const BANK_DETAILS = {
     process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ?? "99510104996453",
   accountHolder:
     process.env.NEXT_PUBLIC_BANK_ACCOUNT_TITLE ?? "Masters Collection",
+
+    jazzcash:process.env.BANK_NAME ?? "Jazz Cash",
+    jazzcashno:process.env.JAZZ_CASH_NUMBER ?? "03719132611",
+    jazzcashtitle:process.env.JAZZ_CASH_TITLE ?? "Aroba Anas",
+
+  
 };
 
 export interface SocialLink {
